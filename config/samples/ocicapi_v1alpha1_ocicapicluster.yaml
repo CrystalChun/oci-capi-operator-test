@@ -1,0 +1,36 @@
+apiVersion: ocicapi.openshift.io/v1alpha1
+kind: OCICAPICluster
+metadata:
+  name: sample-cluster
+  namespace: capi-system
+spec:
+  oci:
+    compartmentId: "ocid1.compartment.oc1..example"
+    region: "us-ashburn-1"
+    credentials:
+      tenancyId: "ocid1.tenancy.oc1..example"
+      userId: "ocid1.user.oc1..example"
+      privateKeySecretRef:
+        name: oci-credentials
+        namespace: capi-system
+        key: private-key
+      fingerprint: "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+      passphrase: "optional-passphrase"
+
+  autoscaling:
+    minNodes: 0
+    maxNodes: 5
+    nodeShape: "VM.Standard.E4.Flex"
+    shapeConfig:
+      ocpus: 6
+      memoryInGBs: 16
+
+  network:
+    vcnId: "ocid1.vcn.oc1.iad.example"
+    subnetId: "ocid1.subnet.oc1.iad.example"
+    networkSecurityGroupId: "ocid1.networksecuritygroup.oc1.iad.example"
+    apiServerLoadBalancerId: "ocid1.loadbalancer.oc1.iad.example"
+    controlPlaneEndpoint: "192.0.2.1"
+
+  image:
+    imageId: "ocid1.image.oc1.iad.example"
