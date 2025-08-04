@@ -26,8 +26,10 @@ import (
 
 	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	certificatesv1 "k8s.io/api/certificates/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -83,7 +85,7 @@ func (r *CertificateApprovalReconciler) Reconcile(ctx context.Context, req ctrl.
 		now := metav1.NewTime(time.Now())
 		csr.Status.Conditions = append(csr.Status.Conditions, certificatesv1.CertificateSigningRequestCondition{
 			Type:               certificatesv1.CertificateApproved,
-			Status:             metav1.ConditionTrue,
+			Status:             corev1.ConditionTrue,
 			Reason:             "OCIMachineApproval",
 			Message:            "Approved by OCI CAPI operator for matching OCIMachine",
 			LastUpdateTime:     now,
@@ -108,7 +110,7 @@ func (r *CertificateApprovalReconciler) hasMatchingOCIMachine(ctx context.Contex
 
 	// List OCIMachines to find a match
 	machineList := &metav1.PartialObjectMetadataList{}
-	machineList.SetGroupVersionKind(metav1.GroupVersionKind{
+	machineList.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "infrastructure.cluster.x-k8s.io",
 		Version: "v1beta2",
 		Kind:    "OCIMachine",
