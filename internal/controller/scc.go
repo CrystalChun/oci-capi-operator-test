@@ -33,24 +33,24 @@ type SecurityContextConstraints struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	AllowHostDirVolumePlugin bool     `json:"allowHostDirVolumePlugin,omitempty"`
-	AllowHostIPC             bool     `json:"allowHostIPC,omitempty"`
-	AllowHostNetwork         bool     `json:"allowHostNetwork,omitempty"`
-	AllowHostPID             bool     `json:"allowHostPID,omitempty"`
-	AllowHostPorts           bool     `json:"allowHostPorts,omitempty"`
-	AllowPrivilegedContainer bool     `json:"allowPrivilegedContainer,omitempty"`
-	AllowedCapabilities      []string `json:"allowedCapabilities,omitempty"`
-	DefaultAddCapabilities   []string `json:"defaultAddCapabilities,omitempty"`
-	FSGroup                  FSGroup  `json:"fsGroup,omitempty"`
-	ReadOnlyRootFilesystem   bool     `json:"readOnlyRootFilesystem,omitempty"`
-	RequiredDropCapabilities []string `json:"requiredDropCapabilities,omitempty"`
-	RunAsUser                RunAsUser `json:"runAsUser,omitempty"`
-	SELinuxContext           SELinux  `json:"seLinuxContext,omitempty"`
-	SeccompProfiles          []string `json:"seccompProfiles,omitempty"`
+	AllowHostDirVolumePlugin bool               `json:"allowHostDirVolumePlugin,omitempty"`
+	AllowHostIPC             bool               `json:"allowHostIPC,omitempty"`
+	AllowHostNetwork         bool               `json:"allowHostNetwork,omitempty"`
+	AllowHostPID             bool               `json:"allowHostPID,omitempty"`
+	AllowHostPorts           bool               `json:"allowHostPorts,omitempty"`
+	AllowPrivilegedContainer bool               `json:"allowPrivilegedContainer,omitempty"`
+	AllowedCapabilities      []string           `json:"allowedCapabilities,omitempty"`
+	DefaultAddCapabilities   []string           `json:"defaultAddCapabilities,omitempty"`
+	FSGroup                  FSGroup            `json:"fsGroup,omitempty"`
+	ReadOnlyRootFilesystem   bool               `json:"readOnlyRootFilesystem,omitempty"`
+	RequiredDropCapabilities []string           `json:"requiredDropCapabilities,omitempty"`
+	RunAsUser                RunAsUser          `json:"runAsUser,omitempty"`
+	SELinuxContext           SELinux            `json:"seLinuxContext,omitempty"`
+	SeccompProfiles          []string           `json:"seccompProfiles,omitempty"`
 	SupplementalGroups       SupplementalGroups `json:"supplementalGroups,omitempty"`
-	Users                    []string `json:"users,omitempty"`
-	Groups                   []string `json:"groups,omitempty"`
-	Volumes                  []string `json:"volumes,omitempty"`
+	Users                    []string           `json:"users,omitempty"`
+	Groups                   []string           `json:"groups,omitempty"`
+	Volumes                  []string           `json:"volumes,omitempty"`
 }
 
 type FSGroup struct {
@@ -71,7 +71,7 @@ type SupplementalGroups struct {
 
 func (r *OCIClusterAutoscalerReconciler) createSecurityContextConstraints(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) error {
 	sccName := "oci-capi"
-	
+
 	// Check if SCC already exists
 	existing := &SecurityContextConstraints{}
 	err := r.Get(ctx, types.NamespacedName{Name: sccName}, existing)
