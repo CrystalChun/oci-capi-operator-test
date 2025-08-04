@@ -139,6 +139,12 @@ func (r *OCIClusterAutoscalerReconciler) Reconcile(ctx context.Context, req ctrl
 func (r *OCIClusterAutoscalerReconciler) reconcileOCICapiStack(ctx context.Context, autoscaler *capiv1alpha1.OCIClusterAutoscaler) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
+	// Step 0: Validate the autoscaler spec
+	if err := validate(autoscaler); err != nil {
+		logger.Error(err, "Invalid autoscaler spec")
+		return ctrl.Result{}, err
+	}
+
 	// Step 1: Ensure required namespaces exist
 	if err := r.ensureNamespaces(ctx, autoscaler); err != nil {
 		logger.Error(err, "Failed to ensure namespaces")
@@ -398,6 +404,25 @@ func (r *OCIClusterAutoscalerReconciler) createClusterAutoscalerRBAC(ctx context
 
 func int32Ptr(i int32) *int32 {
 	return &i
+}
+
+func validate(instance *capiv1alpha1.OCIClusterAutoscaler) error {
+	if err := validateAutoscalerSpec(&instance.Spec); err != nil {
+		return fmt.Errorf("invalid autoscaler spec: %w", err)
+	}
+	return nil
+}
+
+func validateAutoscalerSpec(spec *capiv1alpha1.OCIClusterAutoscalerSpec) error {
+	if spec.Autoscaling.MinNodes > spec.Autoscaling.MaxNodes {
+		return fmt.Errorf("minNodes [%d] must be less than or equal to maxNodes [%d]", spec.Autoscaling.MinNodes, spec.Autoscaling.MaxNodes)
+	}
+
+	if spec.Autoscaling.Shape == "" {
+		return fmt.Errorf("shape is required")
+	}
+
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
