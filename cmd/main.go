@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	capiv1beta1 "github.com/openshift/oci-capi-operator/api/v1beta1"
-	"github.com/openshift/oci-capi-operator/internal/controller"
+	"github.com/openshift/oci-capi-operator/internal/controllers"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -144,7 +144,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.OCIClusterAutoscalerReconciler{
+	if err = (&controllers.OCIClusterAutoscalerReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
@@ -152,7 +152,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.CertificateApprovalReconciler{
+	if err = (&controllers.CertificateApprovalReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
