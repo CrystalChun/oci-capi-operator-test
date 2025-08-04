@@ -1,4 +1,4 @@
-apiVersion: capi.openshift.io/v1beta1
+apiVersion: capi.openshift.io/v1alpha1
 kind: OCIClusterAutoscaler
 metadata:
   labels:
