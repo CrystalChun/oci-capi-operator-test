@@ -1,0 +1,23 @@
+# permissions for end users to view ociclusterautoscalers.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: oci-capi-operator-claude
+    app.kubernetes.io/managed-by: kustomize
+  name: ociclusterautoscaler-viewer-role
+rules:
+- apiGroups:
+  - capi.openshift.io
+  resources:
+  - ociclusterautoscalers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - capi.openshift.io
+  resources:
+  - ociclusterautoscalers/status
+  verbs:
+  - get
