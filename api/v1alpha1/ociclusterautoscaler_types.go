@@ -20,9 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // OCIClusterAutoscalerSpec defines the desired state of OCIClusterAutoscaler
 type OCIClusterAutoscalerSpec struct {
 	// OCI configuration for the cluster autoscaler
@@ -85,13 +82,14 @@ type NetworkConfig struct {
 
 // AutoscalingConfig contains autoscaling configuration
 type AutoscalingConfig struct {
-	// MinSize is the minimum number of nodes in the autoscaling group
-	MinSize int32 `json:"minSize,omitempty"`
+	// minNodes is the minimum number of nodes in the autoscaling group
+	// +kubebuilder:validation:Minimum=0
+	MinNodes int32 `json:"minNodes,omitempty"`
 
-	// MaxSize is the maximum number of nodes in the autoscaling group
-	MaxSize int32 `json:"maxSize"`
+	// maxNodes is the maximum number of nodes in the autoscaling group
+	MaxNodes int32 `json:"maxNodes"`
 
-	// Shape is the OCI compute shape for autoscaling nodes
+	// nodeShape is the OCI compute shape for autoscaling nodes
 	Shape string `json:"shape"`
 
 	// ShapeConfig contains flexible shape configuration
@@ -101,10 +99,10 @@ type AutoscalingConfig struct {
 // ShapeConfig contains OCI flexible shape configuration
 type ShapeConfig struct {
 	// CPUs is the number of OCPUs
-	CPUs string `json:"cpus"`
+	CPUs int32 `json:"cpus"`
 
-	// MemoryInGBs is the amount of memory in GB
-	MemoryInGBs string `json:"memoryInGBs"`
+	// Memory is the amount of memory in GB
+	Memory int32 `json:"memory"`
 }
 
 // CAPIConfig contains Cluster API configuration

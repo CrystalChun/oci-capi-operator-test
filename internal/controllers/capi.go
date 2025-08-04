@@ -140,7 +140,7 @@ func (r *OCIClusterAutoscalerReconciler) createOCIMachineTemplate(ctx context.Co
 					Shape:   instance.Spec.Autoscaling.Shape,
 					ShapeConfig: infrastructurev1beta2.ShapeConfig{
 						Ocpus:       fmt.Sprintf("%d", instance.Spec.Autoscaling.ShapeConfig.CPUs),
-						MemoryInGBs: fmt.Sprintf("%d", instance.Spec.Autoscaling.ShapeConfig.MemoryInGBs), // TODO: check if this is correct
+						MemoryInGBs: fmt.Sprintf("%d", instance.Spec.Autoscaling.ShapeConfig.Memory), // TODO: check if this is correct
 					},
 					IsPvEncryptionInTransitEnabled: false,
 				},
@@ -162,9 +162,9 @@ func (r *OCIClusterAutoscalerReconciler) createMachineDeployment(ctx context.Con
 			Namespace: capiSystemNamespace,
 			Annotations: map[string]string{
 				"capacity.cluster-autoscaler.kubernetes.io/cpu":               fmt.Sprintf("%d", instance.Spec.Autoscaling.ShapeConfig.CPUs),
-				"capacity.cluster-autoscaler.kubernetes.io/memory":            fmt.Sprintf("%dG", instance.Spec.Autoscaling.ShapeConfig.MemoryInGBs),
-				"cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size": fmt.Sprintf("%d", instance.Spec.Autoscaling.MinSize),
-				"cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size": fmt.Sprintf("%d", instance.Spec.Autoscaling.MaxSize),
+				"capacity.cluster-autoscaler.kubernetes.io/memory":            fmt.Sprintf("%dG", instance.Spec.Autoscaling.ShapeConfig.Memory),
+				"cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size": fmt.Sprintf("%d", instance.Spec.Autoscaling.MinNodes),
+				"cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size": fmt.Sprintf("%d", instance.Spec.Autoscaling.MaxNodes),
 			},
 		},
 	}
