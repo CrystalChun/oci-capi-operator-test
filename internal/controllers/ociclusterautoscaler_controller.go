@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	capiv1beta1 "github.com/openshift/oci-capi-operator/api/v1beta1"
+	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 )
 
 // OCIClusterAutoscalerReconciler reconciles a OCIClusterAutoscaler object
@@ -64,7 +64,7 @@ func (r *OCIClusterAutoscalerReconciler) Reconcile(ctx context.Context, req ctrl
 	logger := log.FromContext(ctx)
 
 	// Fetch the OCIClusterAutoscaler instance
-	autoscaler := &capiv1beta1.OCIClusterAutoscaler{}
+	autoscaler := &capiv1alpha1.OCIClusterAutoscaler{}
 	err := r.Get(ctx, req.NamespacedName, autoscaler)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -136,7 +136,7 @@ func (r *OCIClusterAutoscalerReconciler) Reconcile(ctx context.Context, req ctrl
 	return result, nil
 }
 
-func (r *OCIClusterAutoscalerReconciler) reconcileOCICapiStack(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) (ctrl.Result, error) {
+func (r *OCIClusterAutoscalerReconciler) reconcileOCICapiStack(ctx context.Context, autoscaler *capiv1alpha1.OCIClusterAutoscaler) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	// Step 1: Ensure required namespaces exist
@@ -186,7 +186,7 @@ func (r *OCIClusterAutoscalerReconciler) reconcileOCICapiStack(ctx context.Conte
 	return ctrl.Result{RequeueAfter: time.Minute * 10}, nil
 }
 
-func (r *OCIClusterAutoscalerReconciler) ensureNamespaces(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) error {
+func (r *OCIClusterAutoscalerReconciler) ensureNamespaces(ctx context.Context, autoscaler *capiv1alpha1.OCIClusterAutoscaler) error {
 	namespaces := []string{
 		"cluster-api-provider-oci-system",
 		"capi-system",
@@ -208,19 +208,19 @@ func (r *OCIClusterAutoscalerReconciler) ensureNamespaces(ctx context.Context, a
 	return nil
 }
 
-func (r *OCIClusterAutoscalerReconciler) cleanup(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) error {
+func (r *OCIClusterAutoscalerReconciler) cleanup(ctx context.Context, autoscaler *capiv1alpha1.OCIClusterAutoscaler) error {
 	// Cleanup resources created by the operator
 	// This would include removing deployments, RBAC, secrets, etc.
 	return nil
 }
 
-func (r *OCIClusterAutoscalerReconciler) createSecurityContextConstraintsCAPI(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) error {
+func (r *OCIClusterAutoscalerReconciler) createSecurityContextConstraintsCAPI(ctx context.Context, autoscaler *capiv1alpha1.OCIClusterAutoscaler) error {
 	// This would create the SCC needed for CAPI components
 	// Implementation depends on OpenShift security API
 	return nil
 }
 
-func (r *OCIClusterAutoscalerReconciler) createOCICredentialsSecret(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) error {
+func (r *OCIClusterAutoscalerReconciler) createOCICredentialsSecret(ctx context.Context, autoscaler *capiv1alpha1.OCIClusterAutoscaler) error {
 	// Get private key from referenced secret first
 	privateKeySecret := &corev1.Secret{}
 	err := r.Get(ctx, types.NamespacedName{
@@ -273,7 +273,7 @@ func (r *OCIClusterAutoscalerReconciler) checkCAPIInstallation(ctx context.Conte
 	return err == nil, nil
 }
 
-func (r *OCIClusterAutoscalerReconciler) deployClusterAutoscaler(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) error {
+func (r *OCIClusterAutoscalerReconciler) deployClusterAutoscaler(ctx context.Context, autoscaler *capiv1alpha1.OCIClusterAutoscaler) error {
 	namespace := "capi-system"
 
 	// Create or update service account
@@ -343,7 +343,7 @@ func (r *OCIClusterAutoscalerReconciler) deployClusterAutoscaler(ctx context.Con
 	return err
 }
 
-func (r *OCIClusterAutoscalerReconciler) createClusterAutoscalerRBAC(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) error {
+func (r *OCIClusterAutoscalerReconciler) createClusterAutoscalerRBAC(ctx context.Context, autoscaler *capiv1alpha1.OCIClusterAutoscaler) error {
 	// Create or update ClusterRole for additional CAPI permissions
 	clusterRole := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
@@ -403,6 +403,6 @@ func int32Ptr(i int32) *int32 {
 // SetupWithManager sets up the controller with the Manager.
 func (r *OCIClusterAutoscalerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&capiv1beta1.OCIClusterAutoscaler{}).
+		For(&capiv1alpha1.OCIClusterAutoscaler{}).
 		Complete(r)
 }

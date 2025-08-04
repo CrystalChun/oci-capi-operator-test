@@ -21,13 +21,12 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	capiv1beta1 "github.com/openshift/oci-capi-operator/api/v1beta1"
 )
 
 var _ = Describe("OCIClusterAutoscaler Controller", func() {
@@ -40,13 +39,13 @@ var _ = Describe("OCIClusterAutoscaler Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		ociclusterautoscaler := &capiv1beta1.OCIClusterAutoscaler{}
+		ociclusterautoscaler := &capiv1alpha1.OCIClusterAutoscaler{}
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind OCIClusterAutoscaler")
 			err := k8sClient.Get(ctx, typeNamespacedName, ociclusterautoscaler)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &capiv1beta1.OCIClusterAutoscaler{
+				resource := &capiv1alpha1.OCIClusterAutoscaler{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
@@ -59,7 +58,7 @@ var _ = Describe("OCIClusterAutoscaler Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &capiv1beta1.OCIClusterAutoscaler{}
+			resource := &capiv1alpha1.OCIClusterAutoscaler{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 

@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	capiv1beta1 "github.com/openshift/oci-capi-operator/api/v1beta1"
+	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 )
 
 // SecurityContextConstraints represents the OpenShift SCC
@@ -67,7 +67,7 @@ type SupplementalGroups struct {
 	Type string `json:"type,omitempty"`
 }
 
-func (r *OCIClusterAutoscalerReconciler) createSecurityContextConstraints(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) error {
+func (r *OCIClusterAutoscalerReconciler) createSecurityContextConstraints(ctx context.Context, autoscaler *capiv1alpha1.OCIClusterAutoscaler) error {
 	sccName := "oci-capi"
 
 	// Create the SCC using unstructured since we don't have the OpenShift types
