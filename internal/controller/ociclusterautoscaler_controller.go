@@ -139,19 +139,25 @@ func (r *OCIClusterAutoscalerReconciler) Reconcile(ctx context.Context, req ctrl
 func (r *OCIClusterAutoscalerReconciler) reconcileOCICapiStack(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// Step 1: Create SecurityContextConstraints for CAPI
+	// Step 1: Ensure required namespaces exist
+	if err := r.ensureNamespaces(ctx, autoscaler); err != nil {
+		logger.Error(err, "Failed to ensure namespaces")
+		return ctrl.Result{}, err
+	}
+
+	// Step 2: Create SecurityContextConstraints for CAPI
 	if err := r.createSecurityContextConstraints(ctx, autoscaler); err != nil {
 		logger.Error(err, "Failed to create SecurityContextConstraints")
 		return ctrl.Result{}, err
 	}
 
-	// Step 2: Create OCI credentials secret
+	// Step 3: Create OCI credentials secret
 	if err := r.createOCICredentialsSecret(ctx, autoscaler); err != nil {
 		logger.Error(err, "Failed to create OCI credentials secret")
 		return ctrl.Result{}, err
 	}
 
-	// Step 3: Check if CAPI CRDs exist (assuming clusterctl is used externally)
+	// Step 4: Check if CAPI CRDs exist (assuming clusterctl is used externally)
 	capiInstalled, err := r.checkCAPIInstallation(ctx)
 	if err != nil {
 		logger.Error(err, "Failed to check CAPI installation")
@@ -164,20 +170,42 @@ func (r *OCIClusterAutoscalerReconciler) reconcileOCICapiStack(ctx context.Conte
 		return ctrl.Result{RequeueAfter: time.Minute * 2}, nil
 	}
 
-	// Step 4: Deploy cluster-autoscaler
+	// Step 5: Deploy cluster-autoscaler
 	if err := r.deployClusterAutoscaler(ctx, autoscaler); err != nil {
 		logger.Error(err, "Failed to deploy cluster-autoscaler")
 		return ctrl.Result{}, err
 	}
 	autoscaler.Status.ClusterAutoscalerDeployed = true
 
-	// Step 5: Create additional RBAC for cluster-autoscaler
+	// Step 6: Create additional RBAC for cluster-autoscaler
 	if err := r.createClusterAutoscalerRBAC(ctx, autoscaler); err != nil {
 		logger.Error(err, "Failed to create cluster-autoscaler RBAC")
 		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{RequeueAfter: time.Minute * 10}, nil
+}
+
+func (r *OCIClusterAutoscalerReconciler) ensureNamespaces(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) error {
+	namespaces := []string{
+		"cluster-api-provider-oci-system",
+		"capi-system",
+	}
+
+	for _, name := range namespaces {
+		ns := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: name,
+			},
+		}
+		_, err := controllerutil.CreateOrUpdate(ctx, r.Client, ns, func() error {
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("failed to ensure namespace %s: %w", name, err)
+		}
+	}
+	return nil
 }
 
 func (r *OCIClusterAutoscalerReconciler) cleanup(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) error {
@@ -193,25 +221,7 @@ func (r *OCIClusterAutoscalerReconciler) createSecurityContextConstraintsCAPI(ct
 }
 
 func (r *OCIClusterAutoscalerReconciler) createOCICredentialsSecret(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) error {
-	// Create secret with OCI credentials for CAPI
-	secretName := "oci-credentials"
-	namespace := "cluster-api-provider-oci-system"
-
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: namespace,
-		},
-		Type: corev1.SecretTypeOpaque,
-		Data: map[string][]byte{
-			"tenancy":     []byte(autoscaler.Spec.OCI.TenancyID),
-			"user":        []byte(autoscaler.Spec.OCI.UserID),
-			"region":      []byte(autoscaler.Spec.OCI.Region),
-			"fingerprint": []byte(autoscaler.Spec.OCI.Fingerprint),
-		},
-	}
-
-	// Get private key from referenced secret
+	// Get private key from referenced secret first
 	privateKeySecret := &corev1.Secret{}
 	err := r.Get(ctx, types.NamespacedName{
 		Name:      autoscaler.Spec.OCI.PrivateKeySecretRef.Name,
@@ -229,18 +239,31 @@ func (r *OCIClusterAutoscalerReconciler) createOCICredentialsSecret(ctx context.
 	if !exists {
 		return fmt.Errorf("private key not found in secret %s with key %s", autoscaler.Spec.OCI.PrivateKeySecretRef.Name, keyName)
 	}
-	secret.Data["key"] = privateKey
 
-	if err := controllerutil.SetControllerReference(autoscaler, secret, r.Scheme); err != nil {
-		return err
+	// Create or update secret with OCI credentials for CAPI
+	secretName := "oci-credentials"
+	namespace := "cluster-api-provider-oci-system"
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: namespace,
+		},
 	}
 
-	err = r.Create(ctx, secret)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		return err
-	}
+	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, secret, func() error {
+		secret.Type = corev1.SecretTypeOpaque
+		secret.Data = map[string][]byte{
+			"tenancy":     []byte(autoscaler.Spec.OCI.TenancyID),
+			"user":        []byte(autoscaler.Spec.OCI.UserID),
+			"region":      []byte(autoscaler.Spec.OCI.Region),
+			"fingerprint": []byte(autoscaler.Spec.OCI.Fingerprint),
+			"key":         privateKey,
+		}
+		return controllerutil.SetControllerReference(autoscaler, secret, r.Scheme)
+	})
 
-	return nil
+	return err
 }
 
 func (r *OCIClusterAutoscalerReconciler) checkCAPIInstallation(ctx context.Context) (bool, error) {
@@ -253,22 +276,21 @@ func (r *OCIClusterAutoscalerReconciler) checkCAPIInstallation(ctx context.Conte
 func (r *OCIClusterAutoscalerReconciler) deployClusterAutoscaler(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) error {
 	namespace := "capi-system"
 
-	// Create service account
+	// Create or update service account
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "oci-cluster-autoscaler",
 			Namespace: namespace,
 		},
 	}
-	if err := controllerutil.SetControllerReference(autoscaler, sa, r.Scheme); err != nil {
-		return err
-	}
-	err := r.Create(ctx, sa)
-	if err != nil && !errors.IsAlreadyExists(err) {
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, sa, func() error {
+		return controllerutil.SetControllerReference(autoscaler, sa, r.Scheme)
+	})
+	if err != nil {
 		return err
 	}
 
-	// Create deployment
+	// Create or update deployment
 	image := "registry.k8s.io/autoscaling/cluster-autoscaler:v1.29.0"
 	if autoscaler.Spec.ClusterAutoscaler.Image != "" {
 		image = autoscaler.Spec.ClusterAutoscaler.Image
@@ -279,7 +301,10 @@ func (r *OCIClusterAutoscalerReconciler) deployClusterAutoscaler(ctx context.Con
 			Name:      "oci-cluster-autoscaler",
 			Namespace: namespace,
 		},
-		Spec: appsv1.DeploymentSpec{
+	}
+
+	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, deployment, func() error {
+		deployment.Spec = appsv1.DeploymentSpec{
 			Replicas: int32Ptr(1),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
@@ -311,28 +336,23 @@ func (r *OCIClusterAutoscalerReconciler) deployClusterAutoscaler(ctx context.Con
 					},
 				},
 			},
-		},
-	}
+		}
+		return controllerutil.SetControllerReference(autoscaler, deployment, r.Scheme)
+	})
 
-	if err := controllerutil.SetControllerReference(autoscaler, deployment, r.Scheme); err != nil {
-		return err
-	}
-
-	err = r.Create(ctx, deployment)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (r *OCIClusterAutoscalerReconciler) createClusterAutoscalerRBAC(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) error {
-	// Create ClusterRole for additional CAPI permissions
+	// Create or update ClusterRole for additional CAPI permissions
 	clusterRole := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "oci-cluster-autoscaler-extra",
 		},
-		Rules: []rbacv1.PolicyRule{
+	}
+
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, clusterRole, func() error {
+		clusterRole.Rules = []rbacv1.PolicyRule{
 			{
 				APIGroups: []string{"infrastructure.cluster.x-k8s.io"},
 				Resources: []string{"*"},
@@ -343,39 +363,37 @@ func (r *OCIClusterAutoscalerReconciler) createClusterAutoscalerRBAC(ctx context
 				Resources: []string{"*"},
 				Verbs:     []string{"get", "list", "watch", "update"},
 			},
-		},
-	}
-
-	err := r.Create(ctx, clusterRole)
-	if err != nil && !errors.IsAlreadyExists(err) {
+		}
+		return nil
+	})
+	if err != nil {
 		return err
 	}
 
-	// Create ClusterRoleBinding
+	// Create or update ClusterRoleBinding
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "oci-cluster-autoscaler-extra",
 		},
-		RoleRef: rbacv1.RoleRef{
+	}
+
+	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, clusterRoleBinding, func() error {
+		clusterRoleBinding.RoleRef = rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
 			Kind:     "ClusterRole",
 			Name:     "oci-cluster-autoscaler-extra",
-		},
-		Subjects: []rbacv1.Subject{
+		}
+		clusterRoleBinding.Subjects = []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
 				Name:      "oci-cluster-autoscaler",
 				Namespace: "capi-system",
 			},
-		},
-	}
+		}
+		return nil
+	})
 
-	err = r.Create(ctx, clusterRoleBinding)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func int32Ptr(i int32) *int32 {

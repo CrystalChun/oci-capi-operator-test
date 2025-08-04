@@ -20,10 +20,12 @@ import (
 	"context"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	capiv1beta1 "github.com/openshift/oci-capi-operator/api/v1beta1"
 )
@@ -72,57 +74,35 @@ type SupplementalGroups struct {
 func (r *OCIClusterAutoscalerReconciler) createSecurityContextConstraints(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) error {
 	sccName := "oci-capi"
 
-	// Check if SCC already exists
-	existing := &SecurityContextConstraints{}
-	err := r.Get(ctx, types.NamespacedName{Name: sccName}, existing)
-	if err == nil {
-		// SCC already exists
-		return nil
-	}
-	if !errors.IsNotFound(err) {
-		return err
-	}
+	// Create the SCC using unstructured since we don't have the OpenShift types
+	u := &unstructured.Unstructured{}
+	u.SetAPIVersion("security.openshift.io/v1")
+	u.SetKind("SecurityContextConstraints")
+	u.SetName(sccName)
 
-	// Create the SCC
-	scc := &SecurityContextConstraints{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "security.openshift.io/v1",
-			Kind:       "SecurityContextConstraints",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: sccName,
-		},
-		RunAsUser: RunAsUser{
-			Type: "RunAsAny",
-		},
-		SELinuxContext: SELinux{
-			Type: "RunAsAny",
-		},
-		SeccompProfiles: []string{"runtime/default"},
-		Users: []string{
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, u, func() error {
+		// Set the desired state of the SCC
+		u.Object["runAsUser"] = map[string]interface{}{
+			"type": "RunAsAny",
+		}
+		u.Object["seLinuxContext"] = map[string]interface{}{
+			"type": "RunAsAny",
+		}
+		u.Object["seccompProfiles"] = []string{"runtime/default"}
+		u.Object["users"] = []string{
 			"system:serviceaccount:cluster-api-provider-oci-system:capoci-controller-manager",
 			"system:serviceaccount:capi-system:capi-manager",
-		},
-		Volumes: []string{
+		}
+		u.Object["volumes"] = []string{
 			"configMap",
 			"downwardAPI",
 			"emptyDir",
 			"persistentVolumeClaim",
 			"projected",
 			"secret",
-		},
-	}
+		}
+		return nil
+	})
 
-	// Create the SCC using unstructured since we don't have the OpenShift types
-	obj := &runtime.UnstructuredConverter{}
-	unstructured, err := obj.ToUnstructured(scc)
-	if err != nil {
-		return err
-	}
-
-	u := &client.Object{}
-	*u = &client.Object{}
-	(*u).SetUnstructuredContent(unstructured)
-
-	return r.Create(ctx, *u)
+	return err
 }
