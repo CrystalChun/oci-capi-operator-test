@@ -19,19 +19,15 @@ package controller
 import (
 	"context"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"strings"
-	"time"
 
 	certificatesv1 "k8s.io/api/certificates/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	capiv1beta1 "github.com/openshift/oci-capi-operator/api/v1beta1"
@@ -76,7 +72,7 @@ func (r *CertificateApprovalReconciler) Reconcile(ctx context.Context, req ctrl.
 	// Check if there's a matching OCIMachine
 	if r.hasMatchingOCIMachine(ctx, hostname) {
 		logger.Info("Approving certificate for OCI machine", "csr", csr.Name, "hostname", hostname)
-		
+
 		// Approve the CSR
 		csr.Status.Conditions = append(csr.Status.Conditions, certificatesv1.CertificateSigningRequestCondition{
 			Type:    certificatesv1.CertificateApproved,

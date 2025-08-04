@@ -186,7 +186,7 @@ func (r *OCIClusterAutoscalerReconciler) cleanup(ctx context.Context, autoscaler
 	return nil
 }
 
-func (r *OCIClusterAutoscalerReconciler) createSecurityContextConstraints(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) error {
+func (r *OCIClusterAutoscalerReconciler) createSecurityContextConstraintsCAPI(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) error {
 	// This would create the SCC needed for CAPI components
 	// Implementation depends on OpenShift security API
 	return nil
@@ -252,7 +252,7 @@ func (r *OCIClusterAutoscalerReconciler) checkCAPIInstallation(ctx context.Conte
 
 func (r *OCIClusterAutoscalerReconciler) deployClusterAutoscaler(ctx context.Context, autoscaler *capiv1beta1.OCIClusterAutoscaler) error {
 	namespace := "capi-system"
-	
+
 	// Create service account
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
