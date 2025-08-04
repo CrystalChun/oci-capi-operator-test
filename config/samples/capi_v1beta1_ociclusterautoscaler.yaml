@@ -1,0 +1,46 @@
+apiVersion: capi.openshift.io/v1beta1
+kind: OCIClusterAutoscaler
+metadata:
+  labels:
+    app.kubernetes.io/name: ociclusterautoscaler
+    app.kubernetes.io/instance: ociclusterautoscaler-sample
+    app.kubernetes.io/part-of: oci-capi-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: oci-capi-operator
+  name: ociclusterautoscaler-sample
+spec:
+  oci:
+    tenancyId: "ocid1.tenancy.oc1..example"
+    userId: "ocid1.user.oc1..example"
+    region: "us-sanjose-1"
+    fingerprint: "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+    privateKeySecretRef:
+      name: "oci-private-key"
+      key: "private_key"
+    compartmentId: "ocid1.compartment.oc1..example"
+    imageId: "ocid1.image.oc1.us-sanjose-1.example"
+    network:
+      vcnId: "ocid1.vcn.oc1.us-sanjose-1.example"
+      subnetId: "ocid1.subnet.oc1.us-sanjose-1.example"
+      networkSecurityGroupId: "ocid1.networksecuritygroup.oc1.us-sanjose-1.example"
+      apiServerLoadBalancerId: "ocid1.loadbalancer.oc1.us-sanjose-1.example"
+      controlPlaneEndpoint: "192.168.1.100"
+  autoscaling:
+    minSize: 0
+    maxSize: 10
+    shape: "VM.Standard.E4.Flex"
+    shapeConfig:
+      cpus: "4"
+      memoryInGBs: "16"
+  capi:
+    namespace: "capi-system"
+    clusterName: "my-openshift-cluster"
+  clusterAutoscaler:
+    image: "registry.k8s.io/autoscaling/cluster-autoscaler:v1.29.0"
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "300Mi"
+      limits:
+        cpu: "100m"
+        memory: "300Mi"

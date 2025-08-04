@@ -1,0 +1,27 @@
+# permissions for end users to edit ociclusterautoscalers.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: oci-capi-operator-claude
+    app.kubernetes.io/managed-by: kustomize
+  name: ociclusterautoscaler-editor-role
+rules:
+- apiGroups:
+  - capi.openshift.io
+  resources:
+  - ociclusterautoscalers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - capi.openshift.io
+  resources:
+  - ociclusterautoscalers/status
+  verbs:
+  - get
