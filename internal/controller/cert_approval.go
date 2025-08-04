@@ -22,6 +22,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"strings"
+	"time"
 
 	certificatesv1 "k8s.io/api/certificates/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -58,14 +59,20 @@ func (r *CertificateApprovalReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, nil
 	}
 
+	// Only process CSRs for kubelet certificates
+	if !isKubeletCSR(csr) {
+		return ctrl.Result{}, nil
+	}
+
 	// Extract hostname from CSR
 	hostname, err := getCSRHostname(csr)
 	if err != nil {
-		logger.Error(err, "Failed to extract hostname from CSR", "csr", csr.Name)
+		logger.Error(err, "Failed to extract hostname from CSR", "csr", csr.Name, "signerName", csr.Spec.SignerName)
 		return ctrl.Result{}, nil
 	}
 
 	if hostname == "" {
+		logger.V(1).Info("No hostname found in CSR", "csr", csr.Name, "signerName", csr.Spec.SignerName)
 		return ctrl.Result{}, nil
 	}
 
@@ -74,11 +81,14 @@ func (r *CertificateApprovalReconciler) Reconcile(ctx context.Context, req ctrl.
 		logger.Info("Approving certificate for OCI machine", "csr", csr.Name, "hostname", hostname)
 
 		// Approve the CSR
+		now := metav1.NewTime(time.Now())
 		csr.Status.Conditions = append(csr.Status.Conditions, certificatesv1.CertificateSigningRequestCondition{
-			Type:    certificatesv1.CertificateApproved,
-			Status:  metav1.ConditionTrue,
-			Reason:  "OCIMachineApproval",
-			Message: "Approved by OCI CAPI operator for matching OCIMachine",
+			Type:               certificatesv1.CertificateApproved,
+			Status:             metav1.ConditionTrue,
+			Reason:             "OCIMachineApproval",
+			Message:            "Approved by OCI CAPI operator for matching OCIMachine",
+			LastUpdateTime:     now,
+			LastTransitionTime: now,
 		})
 
 		if err := r.Status().Update(ctx, csr); err != nil {
@@ -89,7 +99,14 @@ func (r *CertificateApprovalReconciler) Reconcile(ctx context.Context, req ctrl.
 	return ctrl.Result{}, nil
 }
 
+func isKubeletCSR(csr *certificatesv1.CertificateSigningRequest) bool {
+	return csr.Spec.SignerName == "kubernetes.io/kube-apiserver-client-kubelet" ||
+		csr.Spec.SignerName == "kubernetes.io/kubelet-serving"
+}
+
 func (r *CertificateApprovalReconciler) hasMatchingOCIMachine(ctx context.Context, hostname string) bool {
+	logger := log.FromContext(ctx)
+
 	// List OCIMachines to find a match
 	machineList := &metav1.PartialObjectMetadataList{}
 	machineList.SetGroupVersionKind(metav1.GroupVersionKind{
@@ -100,15 +117,20 @@ func (r *CertificateApprovalReconciler) hasMatchingOCIMachine(ctx context.Contex
 
 	err := r.List(ctx, machineList, client.InNamespace("capi-system"))
 	if err != nil {
+		logger.Error(err, "Failed to list OCIMachines")
 		return false
 	}
 
 	for _, machine := range machineList.Items {
-		if strings.HasPrefix(machine.Name, hostname) || strings.HasPrefix(hostname, machine.Name) {
+		// More precise matching - look for hostname as prefix or suffix of machine name
+		// This handles cases like hostname="worker-1" and machine.Name="my-cluster-worker-1"
+		if strings.Contains(machine.Name, hostname) || strings.Contains(hostname, machine.Name) {
+			logger.V(1).Info("Found matching OCIMachine", "hostname", hostname, "machine", machine.Name)
 			return true
 		}
 	}
 
+	logger.V(1).Info("No matching OCIMachine found", "hostname", hostname, "machineCount", len(machineList.Items))
 	return false
 }
 
@@ -124,9 +146,13 @@ func getCSRHostname(csr *certificatesv1.CertificateSigningRequest) (string, erro
 }
 
 func getHostnameFromClientKubeletCSR(csr *certificatesv1.CertificateSigningRequest) (string, error) {
+	if len(csr.Spec.Request) == 0 {
+		return "", fmt.Errorf("CSR request is empty")
+	}
+
 	block, _ := pem.Decode(csr.Spec.Request)
-	if block == nil {
-		return "", fmt.Errorf("failed to decode PEM block")
+	if block == nil || block.Type != "CERTIFICATE REQUEST" {
+		return "", fmt.Errorf("failed to decode PEM block or invalid block type")
 	}
 
 	certReq, err := x509.ParseCertificateRequest(block.Bytes)
@@ -136,25 +162,30 @@ func getHostnameFromClientKubeletCSR(csr *certificatesv1.CertificateSigningReque
 
 	// Extract CN from subject
 	subject := certReq.Subject.CommonName
+	if subject == "" {
+		return "", fmt.Errorf("certificate request has empty CommonName")
+	}
+
 	if strings.HasPrefix(subject, "system:node:") {
 		hostname := strings.TrimPrefix(subject, "system:node:")
 		// Remove domain suffix if present
 		if dotIndex := strings.Index(hostname, "."); dotIndex > 0 {
 			hostname = hostname[:dotIndex]
 		}
+		if hostname == "" {
+			return "", fmt.Errorf("extracted hostname is empty")
+		}
 		return hostname, nil
 	}
 
-	return "", nil
+	return "", fmt.Errorf("CommonName %q does not have expected system:node: prefix", subject)
 }
 
 func getHostnameFromServingCSR(csr *certificatesv1.CertificateSigningRequest) (string, error) {
 	// For kubelet serving CSRs, extract from username
-	username := ""
-	for _, group := range csr.Spec.Groups {
-		if strings.HasPrefix(group, "system:nodes") {
-			break
-		}
+	username := csr.Spec.Username
+	if username == "" {
+		return "", fmt.Errorf("CSR username is empty")
 	}
 
 	// The username should be in the format system:node:hostname
@@ -163,10 +194,13 @@ func getHostnameFromServingCSR(csr *certificatesv1.CertificateSigningRequest) (s
 		if dotIndex := strings.Index(hostname, "."); dotIndex > 0 {
 			hostname = hostname[:dotIndex]
 		}
+		if hostname == "" {
+			return "", fmt.Errorf("extracted hostname is empty")
+		}
 		return hostname, nil
 	}
 
-	return "", nil
+	return "", fmt.Errorf("username %q does not have expected system:node: prefix", username)
 }
 
 func isCSRApproved(csr *certificatesv1.CertificateSigningRequest) bool {
