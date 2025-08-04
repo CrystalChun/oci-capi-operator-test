@@ -15,7 +15,7 @@ import (
 )
 
 // createOrUpdateCAPIResources creates or updates all CAPI-related resources
-func (r *OCIClusterAutoscalerReconciler) activateAutoscalerResources(ctx context.Context, instance *ocicapiv1alpha1.OCICAPICluster) error {
+func (r *OCIClusterAutoscalerReconciler) activateAutoscalerResources(ctx context.Context, instance *ocicapiv1alpha1.OCIClusterAutoscaler) error {
 	err := r.createCAPIOCICluster(ctx, instance)
 	if err != nil {
 		return fmt.Errorf("failed to create CAPI cluster: %w", err)
@@ -40,7 +40,7 @@ func (r *OCIClusterAutoscalerReconciler) activateAutoscalerResources(ctx context
 	return nil
 }
 
-func (r *OCIClusterAutoscalerReconciler) createCAPIOCICluster(ctx context.Context, instance *ocicapiv1alpha1.OCICAPICluster) error { // Create OCICluster
+func (r *OCIClusterAutoscalerReconciler) createCAPIOCICluster(ctx context.Context, instance *ocicapiv1alpha1.OCIClusterAutoscaler) error { // Create OCICluster
 	ociCluster := &infrastructurev1beta2.OCICluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
@@ -57,10 +57,10 @@ func (r *OCIClusterAutoscalerReconciler) createCAPIOCICluster(ctx context.Contex
 			NetworkSpec: infrastructurev1beta2.NetworkSpec{
 				SkipNetworkManagement: true,
 				Vcn: infrastructurev1beta2.VCN{
-					ID: swag.String(instance.Spec.Network.VCNID),
+					ID: swag.String(instance.Spec.OCI.Network.VCNID),
 					Subnets: []*infrastructurev1beta2.Subnet{
 						{
-							ID:   swag.String(instance.Spec.Network.SubnetID),
+							ID:   swag.String(instance.Spec.OCI.Network.SubnetID),
 							Name: "private",
 							Role: "worker",
 						},
@@ -68,7 +68,7 @@ func (r *OCIClusterAutoscalerReconciler) createCAPIOCICluster(ctx context.Contex
 					NetworkSecurityGroup: infrastructurev1beta2.NetworkSecurityGroup{
 						List: []*infrastructurev1beta2.NSG{
 							{
-								ID:   swag.String(instance.Spec.Network.NetworkSecurityGroupID),
+								ID:   swag.String(instance.Spec.OCI.Network.NetworkSecurityGroupID),
 								Name: "cluster-compute-nsg",
 								Role: "worker",
 							},
@@ -85,7 +85,7 @@ func (r *OCIClusterAutoscalerReconciler) createCAPIOCICluster(ctx context.Contex
 	return nil
 }
 
-func (r *OCIClusterAutoscalerReconciler) createCAPICluster(ctx context.Context, instance *ocicapiv1alpha1.OCICAPICluster) error {
+func (r *OCIClusterAutoscalerReconciler) createCAPICluster(ctx context.Context, instance *ocicapiv1alpha1.OCIClusterAutoscaler) error {
 	// Create Cluster
 	cluster := &capiv1beta1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -123,7 +123,7 @@ func (r *OCIClusterAutoscalerReconciler) createCAPICluster(ctx context.Context, 
 	return nil
 }
 
-func (r *OCIClusterAutoscalerReconciler) createOCIMachineTemplate(ctx context.Context, instance *ocicapiv1alpha1.OCICAPICluster) error {
+func (r *OCIClusterAutoscalerReconciler) createOCIMachineTemplate(ctx context.Context, instance *ocicapiv1alpha1.OCIClusterAutoscaler) error {
 	// Create OCIMachineTemplate
 	machineTemplate := &infrastructurev1beta2.OCIMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
@@ -136,11 +136,11 @@ func (r *OCIClusterAutoscalerReconciler) createOCIMachineTemplate(ctx context.Co
 		machineTemplate.Spec = infrastructurev1beta2.OCIMachineTemplateSpec{
 			Template: infrastructurev1beta2.OCIMachineTemplateResource{
 				Spec: infrastructurev1beta2.OCIMachineSpec{
-					ImageId: instance.Spec.Image.ImageID,
-					Shape:   instance.Spec.Autoscaling.NodeShape,
+					ImageId: instance.Spec.OCI.ImageID,
+					Shape:   instance.Spec.Autoscaling.Shape,
 					ShapeConfig: infrastructurev1beta2.ShapeConfig{
-						Ocpus:       fmt.Sprintf("%d", instance.Spec.Autoscaling.ShapeConfig.OCPUs),
-						MemoryInGBs: fmt.Sprintf("%d", instance.Spec.Autoscaling.ShapeConfig.MemoryInGBs),
+						Ocpus:       fmt.Sprintf("%d", instance.Spec.Autoscaling.ShapeConfig.CPUs),
+						MemoryInGBs: fmt.Sprintf("%d", instance.Spec.Autoscaling.ShapeConfig.MemoryInGBs), // TODO: check if this is correct
 					},
 					IsPvEncryptionInTransitEnabled: false,
 				},
@@ -154,17 +154,17 @@ func (r *OCIClusterAutoscalerReconciler) createOCIMachineTemplate(ctx context.Co
 	return nil
 }
 
-func (r *OCIClusterAutoscalerReconciler) createMachineDeployment(ctx context.Context, instance *ocicapiv1alpha1.OCICAPICluster) error {
+func (r *OCIClusterAutoscalerReconciler) createMachineDeployment(ctx context.Context, instance *ocicapiv1alpha1.OCIClusterAutoscaler) error {
 	// Create MachineDeployment
 	machineDeployment := &capiv1beta1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
 			Namespace: capiSystemNamespace,
 			Annotations: map[string]string{
-				"capacity.cluster-autoscaler.kubernetes.io/cpu":               fmt.Sprintf("%d", instance.Spec.Autoscaling.ShapeConfig.OCPUs),
+				"capacity.cluster-autoscaler.kubernetes.io/cpu":               fmt.Sprintf("%d", instance.Spec.Autoscaling.ShapeConfig.CPUs),
 				"capacity.cluster-autoscaler.kubernetes.io/memory":            fmt.Sprintf("%dG", instance.Spec.Autoscaling.ShapeConfig.MemoryInGBs),
-				"cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size": fmt.Sprintf("%d", instance.Spec.Autoscaling.MinNodes),
-				"cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size": fmt.Sprintf("%d", instance.Spec.Autoscaling.MaxNodes),
+				"cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size": fmt.Sprintf("%d", instance.Spec.Autoscaling.MinSize),
+				"cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size": fmt.Sprintf("%d", instance.Spec.Autoscaling.MaxSize),
 			},
 		},
 	}
