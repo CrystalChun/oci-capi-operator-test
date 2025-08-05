@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/go-openapi/swag"
 	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 )
 
@@ -309,7 +310,7 @@ func (r *OCIClusterAutoscalerReconciler) deployClusterAutoscaler(ctx context.Con
 
 	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, deployment, func() error {
 		deployment.Spec = appsv1.DeploymentSpec{
-			Replicas: int32Ptr(1),
+			Replicas: swag.Int32(1),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": "oci-cluster-autoscaler",
@@ -398,10 +399,6 @@ func (r *OCIClusterAutoscalerReconciler) createClusterAutoscalerRBAC(ctx context
 	})
 
 	return err
-}
-
-func int32Ptr(i int32) *int32 {
-	return &i
 }
 
 func validate(instance *capiv1alpha1.OCIClusterAutoscaler) error {
