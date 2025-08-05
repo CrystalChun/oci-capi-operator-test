@@ -14,7 +14,7 @@ spec:
     singular: ociclusterautoscaler
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - name: v1alpha1
     schema:
       openAPIV3Schema:
         description: OCIClusterAutoscaler is the Schema for the ociclusterautoscalers
@@ -43,34 +43,38 @@ spec:
               autoscaling:
                 description: Autoscaling configuration
                 properties:
-                  maxSize:
-                    description: MaxSize is the maximum number of nodes in the autoscaling
+                  maxNodes:
+                    description: maxNodes is the maximum number of nodes in the autoscaling
                       group
                     format: int32
                     type: integer
-                  minSize:
-                    description: MinSize is the minimum number of nodes in the autoscaling
+                  minNodes:
+                    description: minNodes is the minimum number of nodes in the autoscaling
                       group
                     format: int32
+                    minimum: 0
                     type: integer
                   shape:
-                    description: Shape is the OCI compute shape for autoscaling nodes
+                    description: nodeShape is the OCI compute shape for autoscaling
+                      nodes
                     type: string
                   shapeConfig:
                     description: ShapeConfig contains flexible shape configuration
                     properties:
                       cpus:
                         description: CPUs is the number of OCPUs
-                        type: string
-                      memoryInGBs:
-                        description: MemoryInGBs is the amount of memory in GB
-                        type: string
+                        format: int32
+                        type: integer
+                      memory:
+                        description: Memory is the amount of memory in GB
+                        format: int32
+                        type: integer
                     required:
                     - cpus
-                    - memoryInGBs
+                    - memory
                     type: object
                 required:
-                - maxSize
+                - maxNodes
                 - shape
                 type: object
               capi:
