@@ -19,83 +19,36 @@ package controllers
 import (
 	"context"
 
+	securityv1 "github.com/openshift/api/security/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 )
 
-// SecurityContextConstraints represents the OpenShift SCC
-type SecurityContextConstraints struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	AllowHostDirVolumePlugin bool               `json:"allowHostDirVolumePlugin,omitempty"`
-	AllowHostIPC             bool               `json:"allowHostIPC,omitempty"`
-	AllowHostNetwork         bool               `json:"allowHostNetwork,omitempty"`
-	AllowHostPID             bool               `json:"allowHostPID,omitempty"`
-	AllowHostPorts           bool               `json:"allowHostPorts,omitempty"`
-	AllowPrivilegedContainer bool               `json:"allowPrivilegedContainer,omitempty"`
-	AllowedCapabilities      []string           `json:"allowedCapabilities,omitempty"`
-	DefaultAddCapabilities   []string           `json:"defaultAddCapabilities,omitempty"`
-	FSGroup                  FSGroup            `json:"fsGroup,omitempty"`
-	ReadOnlyRootFilesystem   bool               `json:"readOnlyRootFilesystem,omitempty"`
-	RequiredDropCapabilities []string           `json:"requiredDropCapabilities,omitempty"`
-	RunAsUser                RunAsUser          `json:"runAsUser,omitempty"`
-	SELinuxContext           SELinux            `json:"seLinuxContext,omitempty"`
-	SeccompProfiles          []string           `json:"seccompProfiles,omitempty"`
-	SupplementalGroups       SupplementalGroups `json:"supplementalGroups,omitempty"`
-	Users                    []string           `json:"users,omitempty"`
-	Groups                   []string           `json:"groups,omitempty"`
-	Volumes                  []string           `json:"volumes,omitempty"`
-}
-
-type FSGroup struct {
-	Type string `json:"type,omitempty"`
-}
-
-type RunAsUser struct {
-	Type string `json:"type,omitempty"`
-}
-
-type SELinux struct {
-	Type string `json:"type,omitempty"`
-}
-
-type SupplementalGroups struct {
-	Type string `json:"type,omitempty"`
-}
-
+// createSecurityContextConstraints creates the SCC for the OCIClusterAutoscaler
+// This is for the CAPI manager and CAPOCI controller manager
 func (r *OCIClusterAutoscalerReconciler) createSecurityContextConstraints(ctx context.Context, autoscaler *capiv1alpha1.OCIClusterAutoscaler) error {
 	sccName := "oci-capi"
 
-	// Create the SCC using unstructured since we don't have the OpenShift types
-	u := &unstructured.Unstructured{}
-	u.SetAPIVersion("security.openshift.io/v1")
-	u.SetKind("SecurityContextConstraints")
-	u.SetName(sccName)
+	scc := &securityv1.SecurityContextConstraints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: sccName,
+		},
+	}
 
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, u, func() error {
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, scc, func() error {
 		// Set the desired state of the SCC
-		u.Object["runAsUser"] = map[string]interface{}{
-			"type": "RunAsAny",
+		scc.RunAsUser = securityv1.RunAsUserStrategyOptions{
+			Type: securityv1.RunAsUserStrategyRunAsAny,
 		}
-		u.Object["seLinuxContext"] = map[string]interface{}{
-			"type": "RunAsAny",
+		scc.SELinuxContext = securityv1.SELinuxContextStrategyOptions{
+			Type: securityv1.SELinuxStrategyRunAsAny,
 		}
-		u.Object["seccompProfiles"] = []string{"runtime/default"}
-		u.Object["users"] = []string{
+		scc.SeccompProfiles = []string{"runtime/default"}
+		scc.Users = []string{
 			"system:serviceaccount:cluster-api-provider-oci-system:capoci-controller-manager",
 			"system:serviceaccount:capi-system:capi-manager",
-		}
-		u.Object["volumes"] = []string{
-			"configMap",
-			"downwardAPI",
-			"emptyDir",
-			"persistentVolumeClaim",
-			"projected",
-			"secret",
 		}
 		return nil
 	})
