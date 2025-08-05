@@ -195,7 +195,7 @@ func (r *OCIClusterAutoscalerReconciler) reconcileOCICapiStack(ctx context.Conte
 func (r *OCIClusterAutoscalerReconciler) ensureNamespaces(ctx context.Context, autoscaler *capiv1alpha1.OCIClusterAutoscaler) error {
 	namespaces := []string{
 		"cluster-api-provider-oci-system",
-		"capi-system",
+		capiSystemNamespace,
 	}
 
 	for _, name := range namespaces {
@@ -280,13 +280,11 @@ func (r *OCIClusterAutoscalerReconciler) checkCAPIInstallation(ctx context.Conte
 }
 
 func (r *OCIClusterAutoscalerReconciler) deployClusterAutoscaler(ctx context.Context, autoscaler *capiv1alpha1.OCIClusterAutoscaler) error {
-	namespace := "capi-system"
-
 	// Create or update service account
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "oci-cluster-autoscaler",
-			Namespace: namespace,
+			Namespace: capiSystemNamespace,
 		},
 	}
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, sa, func() error {
@@ -297,7 +295,7 @@ func (r *OCIClusterAutoscalerReconciler) deployClusterAutoscaler(ctx context.Con
 	}
 
 	// Create or update deployment
-	image := "registry.k8s.io/autoscaling/cluster-autoscaler:v1.29.0"
+	image := ClusterAutoscalerImage
 	if autoscaler.Spec.ClusterAutoscaler.Image != "" {
 		image = autoscaler.Spec.ClusterAutoscaler.Image
 	}
@@ -305,7 +303,7 @@ func (r *OCIClusterAutoscalerReconciler) deployClusterAutoscaler(ctx context.Con
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "oci-cluster-autoscaler",
-			Namespace: namespace,
+			Namespace: capiSystemNamespace,
 		},
 	}
 
@@ -334,9 +332,9 @@ func (r *OCIClusterAutoscalerReconciler) deployClusterAutoscaler(ctx context.Con
 								"--v=4",
 								"--stderrthreshold=info",
 								"--cloud-provider=clusterapi",
-								"--namespace=" + namespace,
+								"--namespace=" + capiSystemNamespace,
 								"--clusterapi-cloud-config-authoritative",
-								"--node-group-auto-discovery=clusterapi:namespace=" + namespace,
+								"--node-group-auto-discovery=clusterapi:namespace=" + capiSystemNamespace,
 							},
 						},
 					},
@@ -393,7 +391,7 @@ func (r *OCIClusterAutoscalerReconciler) createClusterAutoscalerRBAC(ctx context
 			{
 				Kind:      "ServiceAccount",
 				Name:      "oci-cluster-autoscaler",
-				Namespace: "capi-system",
+				Namespace: capiSystemNamespace,
 			},
 		}
 		return nil
