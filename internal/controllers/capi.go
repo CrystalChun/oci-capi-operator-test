@@ -6,21 +6,235 @@ import (
 
 	ocicapiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	infrastructurev1beta2 "github.com/oracle/cluster-api-provider-oci/api/v1beta2"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/go-openapi/swag"
 )
 
-// createOrUpdateCAPIResources creates or updates all CAPI-related resources
+func (r *OCIClusterAutoscalerReconciler) deployCAPI(ctx context.Context, instance *ocicapiv1alpha1.OCIClusterAutoscaler) error {
+	err := r.createCAPIDeployment(ctx, instance)
+	if err != nil {
+		return fmt.Errorf("failed to create CAPI deployment: %w", err)
+	}
+	return nil
+}
+
+func (r *OCIClusterAutoscalerReconciler) createCAPIDeployment(ctx context.Context, instance *ocicapiv1alpha1.OCIClusterAutoscaler) error {
+	// Taken directly from the CAPI deployed after running `clusterctl init --bootstrap - --control-plane - --infrastructure oci``
+	CAPIManagerImage := "registry.k8s.io/cluster-api/cluster-api-controller:v1.10.4"
+	deploy := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "capi-controller-manager",
+			Namespace: capiSystemNamespace,
+			Labels: map[string]string{
+				"cluster.x-k8s.io/provider":   "cluster-api",
+				"clusterctl.cluster.x-k8s.io": "",
+				"control-plane":               "controller-manager",
+			},
+		},
+		Spec: appsv1.DeploymentSpec{
+			RevisionHistoryLimit:    swag.Int32(10),
+			ProgressDeadlineSeconds: swag.Int32(600),
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDeployment{
+					MaxUnavailable: &intstr.IntOrString{
+						StrVal: "25%",
+						Type:   intstr.String,
+					},
+					MaxSurge: &intstr.IntOrString{
+						StrVal: "25%",
+						Type:   intstr.String,
+					},
+				},
+			},
+			Replicas: swag.Int32(1),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster.x-k8s.io/provider": "cluster-api",
+					"control-plane":             "controller-manager",
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"cluster.x-k8s.io/provider": "cluster-api",
+						"control-plane":             "controller-manager",
+					},
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "capi-manager",
+					//ServiceAccount:     "capi-manager",
+					DNSPolicy: corev1.DNSClusterFirst,
+					DNSConfig: &corev1.PodDNSConfig{
+						Options: []corev1.PodDNSConfigOption{
+							{Name: "ndots", Value: swag.String("1")},
+						},
+					},
+					RestartPolicy: corev1.RestartPolicyAlways,
+					SchedulerName: "default-scheduler",
+					SecurityContext: &corev1.PodSecurityContext{
+						RunAsNonRoot: swag.Bool(true),
+						SeccompProfile: &corev1.SeccompProfile{
+							Type: corev1.SeccompProfileTypeRuntimeDefault,
+						},
+					},
+					Containers: []corev1.Container{
+						{
+							Name:  "manager",
+							Image: CAPIManagerImage,
+							Args: []string{
+								"--leader-elect",
+								"--diagnostics-address=:8443",
+								"--insecure-diagnostics=false",
+								"--feature-gates=MachinePool=true,ClusterResourceSet=true,ClusterTopology=false,RuntimeSDK=false,MachineSetPreflightChecks=true,MachineWaitForVolumeDetachConsiderVolumeAttachments=true,PriorityQueue=false",
+							},
+							Command: []string{
+								"/manager",
+							},
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 9443,
+									Name:          "webhook-server",
+									Protocol:      corev1.ProtocolTCP,
+								},
+								{
+									ContainerPort: 9440,
+									Name:          "healthz",
+									Protocol:      corev1.ProtocolTCP,
+								},
+								{
+									ContainerPort: 8443,
+									Name:          "metrics",
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
+							Env: []corev1.EnvVar{
+								{
+									Name: "POD_NAMESPACE",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.namespace",
+										},
+									},
+								},
+								{
+									Name: "POD_NAME",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.name",
+										},
+									},
+								},
+								{
+									Name: "POD_UID",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.uid",
+										},
+									},
+								},
+							},
+							LivenessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path:   "/healthz",
+										Port:   intstr.IntOrString{StrVal: "healthz"},
+										Scheme: corev1.URISchemeHTTP,
+									},
+								},
+								PeriodSeconds:    10,
+								TimeoutSeconds:   1,
+								SuccessThreshold: 1,
+								FailureThreshold: 3,
+							},
+							ReadinessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path:   "/healthz",
+										Port:   intstr.IntOrString{StrVal: "healthz"},
+										Scheme: corev1.URISchemeHTTP,
+									},
+								},
+								PeriodSeconds:    10,
+								TimeoutSeconds:   1,
+								SuccessThreshold: 1,
+								FailureThreshold: 3,
+							},
+							SecurityContext: &corev1.SecurityContext{
+								AllowPrivilegeEscalation: swag.Bool(false),
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
+								Privileged: swag.Bool(false),
+								RunAsGroup: swag.Int64(65532),
+								RunAsUser:  swag.Int64(65532),
+							},
+							VolumeMounts: []corev1.VolumeMount{ //TODO: check if this is correct within openshift
+								{
+									Name:      "cert",
+									MountPath: "/tmp/k8s-webhook-server/serving-certs",
+									ReadOnly:  true,
+								},
+							},
+						},
+					},
+					TerminationGracePeriodSeconds: swag.Int64(30),
+					Tolerations: []corev1.Toleration{
+						{
+							Key:    "node-role.kubernetes.io/master",
+							Effect: corev1.TaintEffectNoSchedule,
+						},
+						{
+							Key:    "node-role.kubernetes.io/control-plane",
+							Effect: corev1.TaintEffectNoSchedule,
+						},
+					},
+
+					Volumes: []corev1.Volume{
+						{
+							Name: "cert",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName:  "capi-webhook-service-cert",
+									DefaultMode: swag.Int32(420),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, deploy, func() error {
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create/update CAPIDeployment: %w", err)
+	}
+	return nil
+}
+
+// activateAutoscalerResources creates or updates all CAPI-related custom resources for the autoscaler
+// This includes:
+// - CAPI OCICluster
+// - CAPI Cluster
+// - CAPI OCIMachineTemplate
+// - CAPI MachineDeployment
 func (r *OCIClusterAutoscalerReconciler) activateAutoscalerResources(ctx context.Context, instance *ocicapiv1alpha1.OCIClusterAutoscaler) error {
+	// Create OCICluster
 	err := r.createCAPIOCICluster(ctx, instance)
 	if err != nil {
 		return fmt.Errorf("failed to create CAPI cluster: %w", err)
 	}
 
+	// Create Cluster
 	err = r.createCAPICluster(ctx, instance)
 	if err != nil {
 		return fmt.Errorf("failed to create CAPI cluster: %w", err)
@@ -32,11 +246,11 @@ func (r *OCIClusterAutoscalerReconciler) activateAutoscalerResources(ctx context
 		return fmt.Errorf("failed to create OCIMachineTemplate: %w", err)
 	}
 
+	// Create MachineDeployment
 	err = r.createMachineDeployment(ctx, instance)
 	if err != nil {
 		return fmt.Errorf("failed to create MachineDeployment: %w", err)
 	}
-
 	return nil
 }
 
