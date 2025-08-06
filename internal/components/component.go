@@ -1,6 +1,8 @@
 package components
 
-import "sigs.k8s.io/controller-runtime/pkg/client"
+import (
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
 
 type Component struct {
 	Name          string

@@ -3,11 +3,14 @@ package autoscaler
 import (
 	"fmt"
 
-	"github.com/go-openapi/swag"
 	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	ocicapiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	"github.com/openshift/oci-capi-operator/internal/components"
+
 	infrastructurev1beta2 "github.com/oracle/cluster-api-provider-oci/api/v1beta2"
+
+	"github.com/go-openapi/swag"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -24,7 +27,7 @@ func NewComponent(capiSystemNamespace string, image string, autoscaler *capiv1al
 	clusterRole, clusterRoleMutateFn := ClusterRole(capiSystemNamespace, autoscaler)
 	clusterRoleBinding, clusterRoleBindingMutateFn := ClusterRoleBinding(capiSystemNamespace, autoscaler)
 
-	ociCluster, ociClusterMutateFn := CAPIOCICluster(capiSystemNamespace, autoscaler)
+	ociCluster, ociClusterMutateFn := OCICluster(capiSystemNamespace, autoscaler)
 	cluster, clusterMutateFn := CAPICluster(capiSystemNamespace, autoscaler)
 	machineTemplate, machineTemplateMutateFn := OCIMachineTemplate(capiSystemNamespace, autoscaler)
 	machineDeployment, machineDeploymentMutateFn := MachineDeployment(capiSystemNamespace, autoscaler)
@@ -60,7 +63,7 @@ func AutoscalerDeployment(capiSystemNamespace string, image string, scheme *runt
 	return deploy, mutateFn
 }
 
-func CAPIOCICluster(capiSystemNamespace string, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) { // Create OCICluster
+func OCICluster(capiSystemNamespace string, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) { // Create OCICluster
 	ociCluster := &infrastructurev1beta2.OCICluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
@@ -104,7 +107,6 @@ func CAPIOCICluster(capiSystemNamespace string, instance *ocicapiv1alpha1.OCIClu
 }
 
 func CAPICluster(capiSystemNamespace string, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
-	// Create Cluster
 	cluster := &capiv1beta1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
@@ -140,7 +142,6 @@ func CAPICluster(capiSystemNamespace string, instance *ocicapiv1alpha1.OCICluste
 }
 
 func OCIMachineTemplate(capiSystemNamespace string, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
-	// Create OCIMachineTemplate
 	machineTemplate := &infrastructurev1beta2.OCIMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-autoscaling", instance.Name),
@@ -169,7 +170,6 @@ func OCIMachineTemplate(capiSystemNamespace string, instance *ocicapiv1alpha1.OC
 }
 
 func MachineDeployment(capiSystemNamespace string, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
-	// Create MachineDeployment
 	machineDeployment := &capiv1beta1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
