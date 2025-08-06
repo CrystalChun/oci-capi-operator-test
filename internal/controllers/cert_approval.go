@@ -24,7 +24,6 @@ import (
 	"strings"
 	"time"
 
-	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -227,11 +226,4 @@ func (r *CertificateApprovalReconciler) SetupWithManager(mgr ctrl.Manager) error
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&certificatesv1.CertificateSigningRequest{}).
 		Complete(r)
-}
-
-// deployCertificateApproval creates a deployment that handles certificate approval
-func (r *OCIClusterAutoscalerReconciler) deployCertificateApproval(ctx context.Context, autoscaler *capiv1alpha1.OCIClusterAutoscaler) error {
-	// The certificate approval is now handled by the CertificateApprovalReconciler
-	// This function can be used to deploy additional certificate approval logic if needed
-	return nil
 }
