@@ -21,9 +21,15 @@ import (
 	"fmt"
 	"time"
 
-	securityv1 "github.com/openshift/api/security/v1"
+	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	"github.com/openshift/oci-capi-operator/internal/components"
+	"github.com/openshift/oci-capi-operator/internal/components/autoscaler"
+	"github.com/openshift/oci-capi-operator/internal/components/capi"
+	"github.com/openshift/oci-capi-operator/internal/components/capoci"
 	"github.com/openshift/oci-capi-operator/internal/utils"
+
+	securityv1 "github.com/openshift/api/security/v1"
+
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -37,11 +43,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
-	"github.com/openshift/oci-capi-operator/internal/components/autoscaler"
-	"github.com/openshift/oci-capi-operator/internal/components/capi"
-	"github.com/openshift/oci-capi-operator/internal/components/capoci"
 )
 
 // OCIClusterAutoscalerReconciler reconciles a OCIClusterAutoscaler object
