@@ -11,11 +11,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func ServiceAccount(capiSystemNamespace string, scheme *runtime.Scheme, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+func ServiceAccount(namespace string, scheme *runtime.Scheme, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
 	serviceAccount := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "oci-cluster-autoscaler",
-			Namespace: capiSystemNamespace,
+			Namespace: namespace,
 		},
 	}
 
@@ -26,7 +26,7 @@ func ServiceAccount(capiSystemNamespace string, scheme *runtime.Scheme, instance
 	return serviceAccount, mutateFn
 }
 
-func ClusterRole(capiSystemNamespace string, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+func ClusterRole(instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
 	clusterRole := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "oci-cluster-autoscaler-extra",
@@ -47,7 +47,7 @@ func ClusterRole(capiSystemNamespace string, instance *ocicapiv1alpha1.OCICluste
 	return clusterRole, mutateFn
 }
 
-func ClusterRoleBinding(capiSystemNamespace string, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+func ClusterRoleBinding(namespace string, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "oci-cluster-autoscaler-extra",
@@ -64,7 +64,7 @@ func ClusterRoleBinding(capiSystemNamespace string, instance *ocicapiv1alpha1.OC
 			{
 				Kind:      "ServiceAccount",
 				Name:      "oci-cluster-autoscaler",
-				Namespace: capiSystemNamespace,
+				Namespace: namespace,
 			},
 		}
 		return nil
