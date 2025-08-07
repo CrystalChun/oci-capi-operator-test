@@ -18,6 +18,7 @@ import (
 // NewComponent returns a Component for the CAPI controller manager
 func NewComponent(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) *components.Component {
 	namespace, namespaceMutateFn := CAPINamespace(capiSystemNamespace, autoscaler, scheme)
+	//caBundleConfigMap, caBundleConfigMapMutateFn := CABundleConfigMap(capiSystemNamespace, autoscaler, scheme)
 
 	scc, sccMutateFn := SecurityContextConstraints(capiSystemNamespace, scheme, autoscaler)
 	serviceAccount, serviceAccountMutateFn := ServiceAccount(capiSystemNamespace, autoscaler, scheme)
@@ -241,8 +242,7 @@ func CAPIDeployment(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClus
 							Name: "cert",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName:  "capi-webhook-service-cert",
-									DefaultMode: swag.Int32(420),
+									SecretName: "capi-webhook-service-cert",
 								},
 							},
 						},
@@ -262,6 +262,9 @@ func AdmissionWebhookService(capiSystemNamespace string, autoscaler *capiv1alpha
 			Namespace: capiSystemNamespace,
 			Labels: map[string]string{
 				"cluster.x-k8s.io/provider": "cluster-api",
+			},
+			Annotations: map[string]string{
+				"service.beta.openshift.io/serving-cert-secret-name": "capi-webhook-service-cert",
 			},
 		},
 		Spec: corev1.ServiceSpec{
