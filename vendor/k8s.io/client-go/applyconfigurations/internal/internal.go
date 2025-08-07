@@ -19,8 +19,8 @@ limitations under the License.
 package internal
 
 import (
-	fmt "fmt"
-	sync "sync"
+	"fmt"
+	"sync"
 
 	typed "sigs.k8s.io/structured-merge-diff/v4/typed"
 )
@@ -39,28 +39,6 @@ func Parser() *typed.Parser {
 var parserOnce sync.Once
 var parser *typed.Parser
 var schemaYAML = typed.YAMLObject(`types:
-- name: io.k8s.api.admissionregistration.v1.AuditAnnotation
-  map:
-    fields:
-    - name: key
-      type:
-        scalar: string
-      default: ""
-    - name: valueExpression
-      type:
-        scalar: string
-      default: ""
-- name: io.k8s.api.admissionregistration.v1.ExpressionWarning
-  map:
-    fields:
-    - name: fieldRef
-      type:
-        scalar: string
-      default: ""
-    - name: warning
-      type:
-        scalar: string
-      default: ""
 - name: io.k8s.api.admissionregistration.v1.MatchCondition
   map:
     fields:
@@ -72,31 +50,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
-- name: io.k8s.api.admissionregistration.v1.MatchResources
-  map:
-    fields:
-    - name: excludeResourceRules
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.admissionregistration.v1.NamedRuleWithOperations
-          elementRelationship: atomic
-    - name: matchPolicy
-      type:
-        scalar: string
-    - name: namespaceSelector
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
-    - name: objectSelector
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
-    - name: resourceRules
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.admissionregistration.v1.NamedRuleWithOperations
-          elementRelationship: atomic
-    elementRelationship: atomic
 - name: io.k8s.api.admissionregistration.v1.MutatingWebhook
   map:
     fields:
@@ -170,69 +123,6 @@ var schemaYAML = typed.YAMLObject(`types:
           elementRelationship: associative
           keys:
           - name
-- name: io.k8s.api.admissionregistration.v1.NamedRuleWithOperations
-  map:
-    fields:
-    - name: apiGroups
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
-    - name: apiVersions
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
-    - name: operations
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
-    - name: resourceNames
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
-    - name: resources
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
-    - name: scope
-      type:
-        scalar: string
-    elementRelationship: atomic
-- name: io.k8s.api.admissionregistration.v1.ParamKind
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: kind
-      type:
-        scalar: string
-    elementRelationship: atomic
-- name: io.k8s.api.admissionregistration.v1.ParamRef
-  map:
-    fields:
-    - name: name
-      type:
-        scalar: string
-    - name: namespace
-      type:
-        scalar: string
-    - name: parameterNotFoundAction
-      type:
-        scalar: string
-    - name: selector
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
-    elementRelationship: atomic
 - name: io.k8s.api.admissionregistration.v1.RuleWithOperations
   map:
     fields:
@@ -280,128 +170,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: port
       type:
         scalar: numeric
-- name: io.k8s.api.admissionregistration.v1.TypeChecking
-  map:
-    fields:
-    - name: expressionWarnings
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.admissionregistration.v1.ExpressionWarning
-          elementRelationship: atomic
-- name: io.k8s.api.admissionregistration.v1.ValidatingAdmissionPolicy
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: io.k8s.api.admissionregistration.v1.ValidatingAdmissionPolicySpec
-      default: {}
-    - name: status
-      type:
-        namedType: io.k8s.api.admissionregistration.v1.ValidatingAdmissionPolicyStatus
-      default: {}
-- name: io.k8s.api.admissionregistration.v1.ValidatingAdmissionPolicyBinding
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: io.k8s.api.admissionregistration.v1.ValidatingAdmissionPolicyBindingSpec
-      default: {}
-- name: io.k8s.api.admissionregistration.v1.ValidatingAdmissionPolicyBindingSpec
-  map:
-    fields:
-    - name: matchResources
-      type:
-        namedType: io.k8s.api.admissionregistration.v1.MatchResources
-    - name: paramRef
-      type:
-        namedType: io.k8s.api.admissionregistration.v1.ParamRef
-    - name: policyName
-      type:
-        scalar: string
-    - name: validationActions
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: associative
-- name: io.k8s.api.admissionregistration.v1.ValidatingAdmissionPolicySpec
-  map:
-    fields:
-    - name: auditAnnotations
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.admissionregistration.v1.AuditAnnotation
-          elementRelationship: atomic
-    - name: failurePolicy
-      type:
-        scalar: string
-    - name: matchConditions
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.admissionregistration.v1.MatchCondition
-          elementRelationship: associative
-          keys:
-          - name
-    - name: matchConstraints
-      type:
-        namedType: io.k8s.api.admissionregistration.v1.MatchResources
-    - name: paramKind
-      type:
-        namedType: io.k8s.api.admissionregistration.v1.ParamKind
-    - name: validations
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.admissionregistration.v1.Validation
-          elementRelationship: atomic
-    - name: variables
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.admissionregistration.v1.Variable
-          elementRelationship: associative
-          keys:
-          - name
-- name: io.k8s.api.admissionregistration.v1.ValidatingAdmissionPolicyStatus
-  map:
-    fields:
-    - name: conditions
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
-          elementRelationship: associative
-          keys:
-          - type
-    - name: observedGeneration
-      type:
-        scalar: numeric
-    - name: typeChecking
-      type:
-        namedType: io.k8s.api.admissionregistration.v1.TypeChecking
 - name: io.k8s.api.admissionregistration.v1.ValidatingWebhook
   map:
     fields:
@@ -472,34 +240,6 @@ var schemaYAML = typed.YAMLObject(`types:
           elementRelationship: associative
           keys:
           - name
-- name: io.k8s.api.admissionregistration.v1.Validation
-  map:
-    fields:
-    - name: expression
-      type:
-        scalar: string
-      default: ""
-    - name: message
-      type:
-        scalar: string
-    - name: messageExpression
-      type:
-        scalar: string
-    - name: reason
-      type:
-        scalar: string
-- name: io.k8s.api.admissionregistration.v1.Variable
-  map:
-    fields:
-    - name: expression
-      type:
-        scalar: string
-      default: ""
-    - name: name
-      type:
-        scalar: string
-      default: ""
-    elementRelationship: atomic
 - name: io.k8s.api.admissionregistration.v1.WebhookClientConfig
   map:
     fields:
@@ -510,12 +250,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: io.k8s.api.admissionregistration.v1.ServiceReference
     - name: url
-      type:
-        scalar: string
-- name: io.k8s.api.admissionregistration.v1alpha1.ApplyConfiguration
-  map:
-    fields:
-    - name: expression
       type:
         scalar: string
 - name: io.k8s.api.admissionregistration.v1alpha1.AuditAnnotation
@@ -540,12 +274,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
-- name: io.k8s.api.admissionregistration.v1alpha1.JSONPatch
-  map:
-    fields:
-    - name: expression
-      type:
-        scalar: string
 - name: io.k8s.api.admissionregistration.v1alpha1.MatchCondition
   map:
     fields:
@@ -582,100 +310,6 @@ var schemaYAML = typed.YAMLObject(`types:
             namedType: io.k8s.api.admissionregistration.v1alpha1.NamedRuleWithOperations
           elementRelationship: atomic
     elementRelationship: atomic
-- name: io.k8s.api.admissionregistration.v1alpha1.MutatingAdmissionPolicy
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: io.k8s.api.admissionregistration.v1alpha1.MutatingAdmissionPolicySpec
-      default: {}
-- name: io.k8s.api.admissionregistration.v1alpha1.MutatingAdmissionPolicyBinding
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: io.k8s.api.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingSpec
-      default: {}
-- name: io.k8s.api.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingSpec
-  map:
-    fields:
-    - name: matchResources
-      type:
-        namedType: io.k8s.api.admissionregistration.v1alpha1.MatchResources
-    - name: paramRef
-      type:
-        namedType: io.k8s.api.admissionregistration.v1alpha1.ParamRef
-    - name: policyName
-      type:
-        scalar: string
-- name: io.k8s.api.admissionregistration.v1alpha1.MutatingAdmissionPolicySpec
-  map:
-    fields:
-    - name: failurePolicy
-      type:
-        scalar: string
-    - name: matchConditions
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.admissionregistration.v1alpha1.MatchCondition
-          elementRelationship: associative
-          keys:
-          - name
-    - name: matchConstraints
-      type:
-        namedType: io.k8s.api.admissionregistration.v1alpha1.MatchResources
-    - name: mutations
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.admissionregistration.v1alpha1.Mutation
-          elementRelationship: atomic
-    - name: paramKind
-      type:
-        namedType: io.k8s.api.admissionregistration.v1alpha1.ParamKind
-    - name: reinvocationPolicy
-      type:
-        scalar: string
-    - name: variables
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.admissionregistration.v1alpha1.Variable
-          elementRelationship: atomic
-- name: io.k8s.api.admissionregistration.v1alpha1.Mutation
-  map:
-    fields:
-    - name: applyConfiguration
-      type:
-        namedType: io.k8s.api.admissionregistration.v1alpha1.ApplyConfiguration
-    - name: jsonPatch
-      type:
-        namedType: io.k8s.api.admissionregistration.v1alpha1.JSONPatch
-    - name: patchType
-      type:
-        scalar: string
-      default: ""
 - name: io.k8s.api.admissionregistration.v1alpha1.NamedRuleWithOperations
   map:
     fields:
@@ -1379,6 +1013,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -1440,6 +1075,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: data
       type:
         namedType: __untyped_atomic_
+      default: {}
     - name: kind
       type:
         scalar: string
@@ -1478,6 +1114,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -1590,9 +1227,11 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: lastUpdateTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -1704,6 +1343,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -1815,6 +1455,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -1945,6 +1586,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: data
       type:
         namedType: __untyped_atomic_
+      default: {}
     - name: kind
       type:
         scalar: string
@@ -1983,9 +1625,11 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: lastUpdateTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -2124,6 +1768,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -2254,6 +1899,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: data
       type:
         namedType: __untyped_atomic_
+      default: {}
     - name: kind
       type:
         scalar: string
@@ -2292,6 +1938,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -2404,9 +2051,11 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: lastUpdateTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -2518,6 +2167,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -2629,6 +2279,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -2955,6 +2606,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -3208,6 +2860,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: currentAverageValue
       type:
         namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
+      default: {}
     - name: name
       type:
         scalar: string
@@ -3251,6 +2904,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: currentValue
       type:
         namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
+      default: {}
     - name: metricName
       type:
         scalar: string
@@ -3285,6 +2939,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -3412,6 +3067,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: targetValue
       type:
         namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
+      default: {}
 - name: io.k8s.api.autoscaling.v2beta1.ObjectMetricStatus
   map:
     fields:
@@ -3421,6 +3077,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: currentValue
       type:
         namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
+      default: {}
     - name: metricName
       type:
         scalar: string
@@ -3445,12 +3102,14 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: targetAverageValue
       type:
         namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
+      default: {}
 - name: io.k8s.api.autoscaling.v2beta1.PodsMetricStatus
   map:
     fields:
     - name: currentAverageValue
       type:
         namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
+      default: {}
     - name: metricName
       type:
         scalar: string
@@ -3480,6 +3139,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: currentAverageValue
       type:
         namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
+      default: {}
     - name: name
       type:
         scalar: string
@@ -3616,6 +3276,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -3930,9 +3591,11 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastProbeTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -3965,9 +3628,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: completions
       type:
         scalar: numeric
-    - name: managedBy
-      type:
-        scalar: string
     - name: manualSelector
       type:
         scalar: boolean
@@ -3986,9 +3646,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: selector
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
-    - name: successPolicy
-      type:
-        namedType: io.k8s.api.batch.v1.SuccessPolicy
     - name: suspend
       type:
         scalar: boolean
@@ -4101,24 +3758,6 @@ var schemaYAML = typed.YAMLObject(`types:
           elementType:
             namedType: io.k8s.api.batch.v1.PodFailurePolicyOnPodConditionsPattern
           elementRelationship: atomic
-- name: io.k8s.api.batch.v1.SuccessPolicy
-  map:
-    fields:
-    - name: rules
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.batch.v1.SuccessPolicyRule
-          elementRelationship: atomic
-- name: io.k8s.api.batch.v1.SuccessPolicyRule
-  map:
-    fields:
-    - name: succeededCount
-      type:
-        scalar: numeric
-    - name: succeededIndexes
-      type:
-        scalar: string
 - name: io.k8s.api.batch.v1.UncountedTerminatedPods
   map:
     fields:
@@ -4237,9 +3876,11 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: lastUpdateTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -4361,9 +4002,11 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: lastUpdateTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -4462,55 +4105,9 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: leaseTransitions
       type:
         scalar: numeric
-    - name: preferredHolder
-      type:
-        scalar: string
     - name: renewTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.MicroTime
-    - name: strategy
-      type:
-        scalar: string
-- name: io.k8s.api.coordination.v1alpha2.LeaseCandidate
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: io.k8s.api.coordination.v1alpha2.LeaseCandidateSpec
-      default: {}
-- name: io.k8s.api.coordination.v1alpha2.LeaseCandidateSpec
-  map:
-    fields:
-    - name: binaryVersion
-      type:
-        scalar: string
-      default: ""
-    - name: emulationVersion
-      type:
-        scalar: string
-    - name: leaseName
-      type:
-        scalar: string
-      default: ""
-    - name: pingTime
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.MicroTime
-    - name: renewTime
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.MicroTime
-    - name: strategy
-      type:
-        scalar: string
 - name: io.k8s.api.coordination.v1beta1.Lease
   map:
     fields:
@@ -4543,15 +4140,9 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: leaseTransitions
       type:
         scalar: numeric
-    - name: preferredHolder
-      type:
-        scalar: string
     - name: renewTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.MicroTime
-    - name: strategy
-      type:
-        scalar: string
 - name: io.k8s.api.core.v1.AWSElasticBlockStoreVolumeSource
   map:
     fields:
@@ -4580,21 +4171,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: podAntiAffinity
       type:
         namedType: io.k8s.api.core.v1.PodAntiAffinity
-- name: io.k8s.api.core.v1.AppArmorProfile
-  map:
-    fields:
-    - name: localhostProfile
-      type:
-        scalar: string
-    - name: type
-      type:
-        scalar: string
-      default: ""
-    unions:
-    - discriminator: type
-      fields:
-      - fieldName: localhostProfile
-        discriminatorValue: LocalhostProfile
 - name: io.k8s.api.core.v1.AttachedVolume
   map:
     fields:
@@ -4612,7 +4188,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: cachingMode
       type:
         scalar: string
-      default: ReadWrite
     - name: diskName
       type:
         scalar: string
@@ -4624,15 +4199,12 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: fsType
       type:
         scalar: string
-      default: ext4
     - name: kind
       type:
         scalar: string
-      default: Shared
     - name: readOnly
       type:
         scalar: boolean
-      default: false
 - name: io.k8s.api.core.v1.AzureFilePersistentVolumeSource
   map:
     fields:
@@ -4817,31 +4389,21 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
+- name: io.k8s.api.core.v1.ClaimSource
+  map:
+    fields:
+    - name: resourceClaimName
+      type:
+        scalar: string
+    - name: resourceClaimTemplateName
+      type:
+        scalar: string
 - name: io.k8s.api.core.v1.ClientIPConfig
   map:
     fields:
     - name: timeoutSeconds
       type:
         scalar: numeric
-- name: io.k8s.api.core.v1.ClusterTrustBundleProjection
-  map:
-    fields:
-    - name: labelSelector
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
-    - name: name
-      type:
-        scalar: string
-    - name: optional
-      type:
-        scalar: boolean
-    - name: path
-      type:
-        scalar: string
-      default: ""
-    - name: signerName
-      type:
-        scalar: string
 - name: io.k8s.api.core.v1.ComponentCondition
   map:
     fields:
@@ -4912,7 +4474,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: name
       type:
         scalar: string
-      default: ""
     - name: optional
       type:
         scalar: boolean
@@ -4926,7 +4487,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: name
       type:
         scalar: string
-      default: ""
     - name: optional
       type:
         scalar: boolean
@@ -4964,7 +4524,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: name
       type:
         scalar: string
-      default: ""
     - name: optional
       type:
         scalar: boolean
@@ -4983,7 +4542,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: name
       type:
         scalar: string
-      default: ""
     - name: optional
       type:
         scalar: boolean
@@ -5158,6 +4716,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: startedAt
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
 - name: io.k8s.api.core.v1.ContainerStateTerminated
   map:
     fields:
@@ -5171,6 +4730,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: finishedAt
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -5183,6 +4743,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: startedAt
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
 - name: io.k8s.api.core.v1.ContainerStateWaiting
   map:
     fields:
@@ -5200,14 +4761,6 @@ var schemaYAML = typed.YAMLObject(`types:
         map:
           elementType:
             namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
-    - name: allocatedResourcesStatus
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.core.v1.ResourceStatus
-          elementRelationship: associative
-          keys:
-          - name
     - name: containerID
       type:
         scalar: string
@@ -5245,23 +4798,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: io.k8s.api.core.v1.ContainerState
       default: {}
-    - name: user
-      type:
-        namedType: io.k8s.api.core.v1.ContainerUser
-    - name: volumeMounts
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.core.v1.VolumeMountStatus
-          elementRelationship: associative
-          keys:
-          - mountPath
-- name: io.k8s.api.core.v1.ContainerUser
-  map:
-    fields:
-    - name: linux
-      type:
-        namedType: io.k8s.api.core.v1.LinuxContainerUser
 - name: io.k8s.api.core.v1.DaemonEndpoint
   map:
     fields:
@@ -5563,9 +5099,11 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: eventTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.MicroTime
+      default: {}
     - name: firstTimestamp
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: involvedObject
       type:
         namedType: io.k8s.api.core.v1.ObjectReference
@@ -5576,6 +5114,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTimestamp
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -5616,6 +5155,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastObservedTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.MicroTime
+      default: {}
 - name: io.k8s.api.core.v1.EventSource
   map:
     fields:
@@ -5798,6 +5338,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: port
       type:
         namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
+      default: {}
     - name: scheme
       type:
         scalar: string
@@ -5824,14 +5365,12 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: ip
       type:
         scalar: string
-      default: ""
 - name: io.k8s.api.core.v1.HostIP
   map:
     fields:
     - name: ip
       type:
         scalar: string
-      default: ""
 - name: io.k8s.api.core.v1.HostPathVolumeSource
   map:
     fields:
@@ -5864,7 +5403,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: iscsiInterface
       type:
         scalar: string
-      default: default
     - name: lun
       type:
         scalar: numeric
@@ -5907,7 +5445,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: iscsiInterface
       type:
         scalar: string
-      default: default
     - name: lun
       type:
         scalar: numeric
@@ -5928,15 +5465,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
-- name: io.k8s.api.core.v1.ImageVolumeSource
-  map:
-    fields:
-    - name: pullPolicy
-      type:
-        scalar: string
-    - name: reference
-      type:
-        scalar: string
 - name: io.k8s.api.core.v1.KeyToPath
   map:
     fields:
@@ -5969,9 +5497,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: httpGet
       type:
         namedType: io.k8s.api.core.v1.HTTPGetAction
-    - name: sleep
-      type:
-        namedType: io.k8s.api.core.v1.SleepAction
     - name: tcpSocket
       type:
         namedType: io.k8s.api.core.v1.TCPSocketAction
@@ -6033,23 +5558,6 @@ var schemaYAML = typed.YAMLObject(`types:
           elementType:
             namedType: io.k8s.api.core.v1.LimitRangeItem
           elementRelationship: atomic
-- name: io.k8s.api.core.v1.LinuxContainerUser
-  map:
-    fields:
-    - name: gid
-      type:
-        scalar: numeric
-      default: 0
-    - name: supplementalGroups
-      type:
-        list:
-          elementType:
-            scalar: numeric
-          elementRelationship: atomic
-    - name: uid
-      type:
-        scalar: numeric
-      default: 0
 - name: io.k8s.api.core.v1.LoadBalancerIngress
   map:
     fields:
@@ -6057,9 +5565,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
     - name: ip
-      type:
-        scalar: string
-    - name: ipMode
       type:
         scalar: string
     - name: ports
@@ -6083,7 +5588,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: name
       type:
         scalar: string
-      default: ""
     elementRelationship: atomic
 - name: io.k8s.api.core.v1.LocalVolumeSource
   map:
@@ -6095,16 +5599,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
-- name: io.k8s.api.core.v1.ModifyVolumeStatus
-  map:
-    fields:
-    - name: status
-      type:
-        scalar: string
-      default: ""
-    - name: targetVolumeAttributesClassName
-      type:
-        scalar: string
 - name: io.k8s.api.core.v1.NFSVolumeSource
   map:
     fields:
@@ -6146,6 +5640,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -6233,9 +5728,11 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastHeartbeatTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -6278,31 +5775,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: io.k8s.api.core.v1.DaemonEndpoint
       default: {}
-- name: io.k8s.api.core.v1.NodeFeatures
-  map:
-    fields:
-    - name: supplementalGroupsPolicy
-      type:
-        scalar: boolean
-- name: io.k8s.api.core.v1.NodeRuntimeHandler
-  map:
-    fields:
-    - name: features
-      type:
-        namedType: io.k8s.api.core.v1.NodeRuntimeHandlerFeatures
-    - name: name
-      type:
-        scalar: string
-      default: ""
-- name: io.k8s.api.core.v1.NodeRuntimeHandlerFeatures
-  map:
-    fields:
-    - name: recursiveReadOnlyMounts
-      type:
-        scalar: boolean
-    - name: userNamespaces
-      type:
-        scalar: boolean
 - name: io.k8s.api.core.v1.NodeSelector
   map:
     fields:
@@ -6412,9 +5884,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: io.k8s.api.core.v1.NodeDaemonEndpoints
       default: {}
-    - name: features
-      type:
-        namedType: io.k8s.api.core.v1.NodeFeatures
     - name: images
       type:
         list:
@@ -6428,12 +5897,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: phase
       type:
         scalar: string
-    - name: runtimeHandlers
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.core.v1.NodeRuntimeHandler
-          elementRelationship: atomic
     - name: volumesAttached
       type:
         list:
@@ -6573,9 +6036,11 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastProbeTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -6607,15 +6072,12 @@ var schemaYAML = typed.YAMLObject(`types:
         namedType: io.k8s.api.core.v1.TypedObjectReference
     - name: resources
       type:
-        namedType: io.k8s.api.core.v1.VolumeResourceRequirements
+        namedType: io.k8s.api.core.v1.ResourceRequirements
       default: {}
     - name: selector
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
     - name: storageClassName
-      type:
-        scalar: string
-    - name: volumeAttributesClassName
       type:
         scalar: string
     - name: volumeMode
@@ -6657,12 +6119,6 @@ var schemaYAML = typed.YAMLObject(`types:
           elementRelationship: associative
           keys:
           - type
-    - name: currentVolumeAttributesClassName
-      type:
-        scalar: string
-    - name: modifyVolumeStatus
-      type:
-        namedType: io.k8s.api.core.v1.ModifyVolumeStatus
     - name: phase
       type:
         scalar: string
@@ -6783,9 +6239,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: storageos
       type:
         namedType: io.k8s.api.core.v1.StorageOSPersistentVolumeSource
-    - name: volumeAttributesClassName
-      type:
-        scalar: string
     - name: volumeMode
       type:
         scalar: string
@@ -6859,18 +6312,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: labelSelector
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
-    - name: matchLabelKeys
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
-    - name: mismatchLabelKeys
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
     - name: namespaceSelector
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
@@ -6905,9 +6346,11 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastProbeTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -6958,7 +6401,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: ip
       type:
         scalar: string
-      default: ""
 - name: io.k8s.api.core.v1.PodOS
   map:
     fields:
@@ -6980,12 +6422,10 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
-    - name: resourceClaimName
+    - name: source
       type:
-        scalar: string
-    - name: resourceClaimTemplateName
-      type:
-        scalar: string
+        namedType: io.k8s.api.core.v1.ClaimSource
+      default: {}
 - name: io.k8s.api.core.v1.PodResourceClaimStatus
   map:
     fields:
@@ -7006,9 +6446,6 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: io.k8s.api.core.v1.PodSecurityContext
   map:
     fields:
-    - name: appArmorProfile
-      type:
-        namedType: io.k8s.api.core.v1.AppArmorProfile
     - name: fsGroup
       type:
         scalar: numeric
@@ -7024,9 +6461,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: runAsUser
       type:
         scalar: numeric
-    - name: seLinuxChangePolicy
-      type:
-        scalar: string
     - name: seLinuxOptions
       type:
         namedType: io.k8s.api.core.v1.SELinuxOptions
@@ -7039,9 +6473,6 @@ var schemaYAML = typed.YAMLObject(`types:
           elementType:
             scalar: numeric
           elementRelationship: atomic
-    - name: supplementalGroupsPolicy
-      type:
-        scalar: string
     - name: sysctls
       type:
         list:
@@ -7167,9 +6598,6 @@ var schemaYAML = typed.YAMLObject(`types:
           elementRelationship: associative
           keys:
           - name
-    - name: resources
-      type:
-        namedType: io.k8s.api.core.v1.ResourceRequirements
     - name: restartPolicy
       type:
         scalar: string
@@ -7456,7 +6884,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: keyring
       type:
         scalar: string
-      default: /etc/ceph/keyring
     - name: monitors
       type:
         list:
@@ -7466,7 +6893,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: pool
       type:
         scalar: string
-      default: rbd
     - name: readOnly
       type:
         scalar: boolean
@@ -7476,7 +6902,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: user
       type:
         scalar: string
-      default: admin
 - name: io.k8s.api.core.v1.RBDVolumeSource
   map:
     fields:
@@ -7490,7 +6915,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: keyring
       type:
         scalar: string
-      default: /etc/ceph/keyring
     - name: monitors
       type:
         list:
@@ -7500,7 +6924,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: pool
       type:
         scalar: string
-      default: rbd
     - name: readOnly
       type:
         scalar: boolean
@@ -7510,7 +6933,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: user
       type:
         scalar: string
-      default: admin
 - name: io.k8s.api.core.v1.ReplicationController
   map:
     fields:
@@ -7538,6 +6960,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -7604,9 +7027,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
-    - name: request
-      type:
-        scalar: string
 - name: io.k8s.api.core.v1.ResourceFieldSelector
   map:
     fields:
@@ -7616,21 +7036,12 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: divisor
       type:
         namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
+      default: {}
     - name: resource
       type:
         scalar: string
       default: ""
     elementRelationship: atomic
-- name: io.k8s.api.core.v1.ResourceHealth
-  map:
-    fields:
-    - name: health
-      type:
-        scalar: string
-    - name: resourceID
-      type:
-        scalar: string
-      default: ""
 - name: io.k8s.api.core.v1.ResourceQuota
   map:
     fields:
@@ -7703,21 +7114,6 @@ var schemaYAML = typed.YAMLObject(`types:
         map:
           elementType:
             namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
-- name: io.k8s.api.core.v1.ResourceStatus
-  map:
-    fields:
-    - name: name
-      type:
-        scalar: string
-      default: ""
-    - name: resources
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.core.v1.ResourceHealth
-          elementRelationship: associative
-          keys:
-          - resourceID
 - name: io.k8s.api.core.v1.SELinuxOptions
   map:
     fields:
@@ -7739,7 +7135,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: fsType
       type:
         scalar: string
-      default: xfs
     - name: gateway
       type:
         scalar: string
@@ -7759,7 +7154,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: storageMode
       type:
         scalar: string
-      default: ThinProvisioned
     - name: storagePool
       type:
         scalar: string
@@ -7776,7 +7170,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: fsType
       type:
         scalar: string
-      default: xfs
     - name: gateway
       type:
         scalar: string
@@ -7796,7 +7189,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: storageMode
       type:
         scalar: string
-      default: ThinProvisioned
     - name: storagePool
       type:
         scalar: string
@@ -7884,7 +7276,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: name
       type:
         scalar: string
-      default: ""
     - name: optional
       type:
         scalar: boolean
@@ -7898,7 +7289,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: name
       type:
         scalar: string
-      default: ""
     - name: optional
       type:
         scalar: boolean
@@ -7915,7 +7305,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: name
       type:
         scalar: string
-      default: ""
     - name: optional
       type:
         scalar: boolean
@@ -7953,9 +7342,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: allowPrivilegeEscalation
       type:
         scalar: boolean
-    - name: appArmorProfile
-      type:
-        namedType: io.k8s.api.core.v1.AppArmorProfile
     - name: capabilities
       type:
         namedType: io.k8s.api.core.v1.Capabilities
@@ -8073,6 +7459,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: targetPort
       type:
         namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
+      default: {}
 - name: io.k8s.api.core.v1.ServiceSpec
   map:
     fields:
@@ -8151,9 +7538,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: sessionAffinityConfig
       type:
         namedType: io.k8s.api.core.v1.SessionAffinityConfig
-    - name: trafficDistribution
-      type:
-        scalar: string
     - name: type
       type:
         scalar: string
@@ -8178,13 +7562,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: clientIP
       type:
         namedType: io.k8s.api.core.v1.ClientIPConfig
-- name: io.k8s.api.core.v1.SleepAction
-  map:
-    fields:
-    - name: seconds
-      type:
-        scalar: numeric
-      default: 0
 - name: io.k8s.api.core.v1.StorageOSPersistentVolumeSource
   map:
     fields:
@@ -8241,6 +7618,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: port
       type:
         namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
+      default: {}
 - name: io.k8s.api.core.v1.Taint
   map:
     fields:
@@ -8418,9 +7796,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: hostPath
       type:
         namedType: io.k8s.api.core.v1.HostPathVolumeSource
-    - name: image
-      type:
-        namedType: io.k8s.api.core.v1.ImageVolumeSource
     - name: iscsi
       type:
         namedType: io.k8s.api.core.v1.ISCSIVolumeSource
@@ -8489,30 +7864,10 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: readOnly
       type:
         scalar: boolean
-    - name: recursiveReadOnly
-      type:
-        scalar: string
     - name: subPath
       type:
         scalar: string
     - name: subPathExpr
-      type:
-        scalar: string
-- name: io.k8s.api.core.v1.VolumeMountStatus
-  map:
-    fields:
-    - name: mountPath
-      type:
-        scalar: string
-      default: ""
-    - name: name
-      type:
-        scalar: string
-      default: ""
-    - name: readOnly
-      type:
-        scalar: boolean
-    - name: recursiveReadOnly
       type:
         scalar: string
 - name: io.k8s.api.core.v1.VolumeNodeAffinity
@@ -8524,9 +7879,6 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: io.k8s.api.core.v1.VolumeProjection
   map:
     fields:
-    - name: clusterTrustBundle
-      type:
-        namedType: io.k8s.api.core.v1.ClusterTrustBundleProjection
     - name: configMap
       type:
         namedType: io.k8s.api.core.v1.ConfigMapProjection
@@ -8539,19 +7891,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: serviceAccountToken
       type:
         namedType: io.k8s.api.core.v1.ServiceAccountTokenProjection
-- name: io.k8s.api.core.v1.VolumeResourceRequirements
-  map:
-    fields:
-    - name: limits
-      type:
-        map:
-          elementType:
-            namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
-    - name: requests
-      type:
-        map:
-          elementType:
-            namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
 - name: io.k8s.api.core.v1.VsphereVirtualDiskVolumeSource
   map:
     fields:
@@ -8817,9 +8156,11 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: deprecatedFirstTimestamp
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: deprecatedLastTimestamp
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: deprecatedSource
       type:
         namedType: io.k8s.api.core.v1.EventSource
@@ -8827,6 +8168,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: eventTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.MicroTime
+      default: {}
     - name: kind
       type:
         scalar: string
@@ -8869,6 +8211,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastObservedTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.MicroTime
+      default: {}
 - name: io.k8s.api.events.v1beta1.Event
   map:
     fields:
@@ -8884,9 +8227,11 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: deprecatedFirstTimestamp
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: deprecatedLastTimestamp
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: deprecatedSource
       type:
         namedType: io.k8s.api.core.v1.EventSource
@@ -8894,6 +8239,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: eventTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.MicroTime
+      default: {}
     - name: kind
       type:
         scalar: string
@@ -8936,6 +8282,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastObservedTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.MicroTime
+      default: {}
 - name: io.k8s.api.extensions.v1beta1.DaemonSet
   map:
     fields:
@@ -8963,6 +8310,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -9078,9 +8426,11 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: lastUpdateTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -9236,6 +8586,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: servicePort
       type:
         namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
+      default: {}
 - name: io.k8s.api.extensions.v1beta1.IngressLoadBalancerIngress
   map:
     fields:
@@ -9446,6 +8797,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -9527,7 +8879,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: maxUnavailable
       type:
         namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
-- name: io.k8s.api.flowcontrol.v1.ExemptPriorityLevelConfiguration
+- name: io.k8s.api.flowcontrol.v1alpha1.ExemptPriorityLevelConfiguration
   map:
     fields:
     - name: lendablePercent
@@ -9536,14 +8888,14 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: nominalConcurrencyShares
       type:
         scalar: numeric
-- name: io.k8s.api.flowcontrol.v1.FlowDistinguisherMethod
+- name: io.k8s.api.flowcontrol.v1alpha1.FlowDistinguisherMethod
   map:
     fields:
     - name: type
       type:
         scalar: string
       default: ""
-- name: io.k8s.api.flowcontrol.v1.FlowSchema
+- name: io.k8s.api.flowcontrol.v1alpha1.FlowSchema
   map:
     fields:
     - name: apiVersion
@@ -9558,18 +8910,19 @@ var schemaYAML = typed.YAMLObject(`types:
       default: {}
     - name: spec
       type:
-        namedType: io.k8s.api.flowcontrol.v1.FlowSchemaSpec
+        namedType: io.k8s.api.flowcontrol.v1alpha1.FlowSchemaSpec
       default: {}
     - name: status
       type:
-        namedType: io.k8s.api.flowcontrol.v1.FlowSchemaStatus
+        namedType: io.k8s.api.flowcontrol.v1alpha1.FlowSchemaStatus
       default: {}
-- name: io.k8s.api.flowcontrol.v1.FlowSchemaCondition
+- name: io.k8s.api.flowcontrol.v1alpha1.FlowSchemaCondition
   map:
     fields:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -9582,50 +8935,50 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: type
       type:
         scalar: string
-- name: io.k8s.api.flowcontrol.v1.FlowSchemaSpec
+- name: io.k8s.api.flowcontrol.v1alpha1.FlowSchemaSpec
   map:
     fields:
     - name: distinguisherMethod
       type:
-        namedType: io.k8s.api.flowcontrol.v1.FlowDistinguisherMethod
+        namedType: io.k8s.api.flowcontrol.v1alpha1.FlowDistinguisherMethod
     - name: matchingPrecedence
       type:
         scalar: numeric
       default: 0
     - name: priorityLevelConfiguration
       type:
-        namedType: io.k8s.api.flowcontrol.v1.PriorityLevelConfigurationReference
+        namedType: io.k8s.api.flowcontrol.v1alpha1.PriorityLevelConfigurationReference
       default: {}
     - name: rules
       type:
         list:
           elementType:
-            namedType: io.k8s.api.flowcontrol.v1.PolicyRulesWithSubjects
+            namedType: io.k8s.api.flowcontrol.v1alpha1.PolicyRulesWithSubjects
           elementRelationship: atomic
-- name: io.k8s.api.flowcontrol.v1.FlowSchemaStatus
+- name: io.k8s.api.flowcontrol.v1alpha1.FlowSchemaStatus
   map:
     fields:
     - name: conditions
       type:
         list:
           elementType:
-            namedType: io.k8s.api.flowcontrol.v1.FlowSchemaCondition
+            namedType: io.k8s.api.flowcontrol.v1alpha1.FlowSchemaCondition
           elementRelationship: associative
           keys:
           - type
-- name: io.k8s.api.flowcontrol.v1.GroupSubject
+- name: io.k8s.api.flowcontrol.v1alpha1.GroupSubject
   map:
     fields:
     - name: name
       type:
         scalar: string
       default: ""
-- name: io.k8s.api.flowcontrol.v1.LimitResponse
+- name: io.k8s.api.flowcontrol.v1alpha1.LimitResponse
   map:
     fields:
     - name: queuing
       type:
-        namedType: io.k8s.api.flowcontrol.v1.QueuingConfiguration
+        namedType: io.k8s.api.flowcontrol.v1alpha1.QueuingConfiguration
     - name: type
       type:
         scalar: string
@@ -9635,9 +8988,13 @@ var schemaYAML = typed.YAMLObject(`types:
       fields:
       - fieldName: queuing
         discriminatorValue: Queuing
-- name: io.k8s.api.flowcontrol.v1.LimitedPriorityLevelConfiguration
+- name: io.k8s.api.flowcontrol.v1alpha1.LimitedPriorityLevelConfiguration
   map:
     fields:
+    - name: assuredConcurrencyShares
+      type:
+        scalar: numeric
+      default: 0
     - name: borrowingLimitPercent
       type:
         scalar: numeric
@@ -9646,12 +9003,9 @@ var schemaYAML = typed.YAMLObject(`types:
         scalar: numeric
     - name: limitResponse
       type:
-        namedType: io.k8s.api.flowcontrol.v1.LimitResponse
+        namedType: io.k8s.api.flowcontrol.v1alpha1.LimitResponse
       default: {}
-    - name: nominalConcurrencyShares
-      type:
-        scalar: numeric
-- name: io.k8s.api.flowcontrol.v1.NonResourcePolicyRule
+- name: io.k8s.api.flowcontrol.v1alpha1.NonResourcePolicyRule
   map:
     fields:
     - name: nonResourceURLs
@@ -9666,28 +9020,28 @@ var schemaYAML = typed.YAMLObject(`types:
           elementType:
             scalar: string
           elementRelationship: associative
-- name: io.k8s.api.flowcontrol.v1.PolicyRulesWithSubjects
+- name: io.k8s.api.flowcontrol.v1alpha1.PolicyRulesWithSubjects
   map:
     fields:
     - name: nonResourceRules
       type:
         list:
           elementType:
-            namedType: io.k8s.api.flowcontrol.v1.NonResourcePolicyRule
+            namedType: io.k8s.api.flowcontrol.v1alpha1.NonResourcePolicyRule
           elementRelationship: atomic
     - name: resourceRules
       type:
         list:
           elementType:
-            namedType: io.k8s.api.flowcontrol.v1.ResourcePolicyRule
+            namedType: io.k8s.api.flowcontrol.v1alpha1.ResourcePolicyRule
           elementRelationship: atomic
     - name: subjects
       type:
         list:
           elementType:
-            namedType: io.k8s.api.flowcontrol.v1.Subject
+            namedType: io.k8s.api.flowcontrol.v1alpha1.Subject
           elementRelationship: atomic
-- name: io.k8s.api.flowcontrol.v1.PriorityLevelConfiguration
+- name: io.k8s.api.flowcontrol.v1alpha1.PriorityLevelConfiguration
   map:
     fields:
     - name: apiVersion
@@ -9702,18 +9056,19 @@ var schemaYAML = typed.YAMLObject(`types:
       default: {}
     - name: spec
       type:
-        namedType: io.k8s.api.flowcontrol.v1.PriorityLevelConfigurationSpec
+        namedType: io.k8s.api.flowcontrol.v1alpha1.PriorityLevelConfigurationSpec
       default: {}
     - name: status
       type:
-        namedType: io.k8s.api.flowcontrol.v1.PriorityLevelConfigurationStatus
+        namedType: io.k8s.api.flowcontrol.v1alpha1.PriorityLevelConfigurationStatus
       default: {}
-- name: io.k8s.api.flowcontrol.v1.PriorityLevelConfigurationCondition
+- name: io.k8s.api.flowcontrol.v1alpha1.PriorityLevelConfigurationCondition
   map:
     fields:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -9726,22 +9081,22 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: type
       type:
         scalar: string
-- name: io.k8s.api.flowcontrol.v1.PriorityLevelConfigurationReference
+- name: io.k8s.api.flowcontrol.v1alpha1.PriorityLevelConfigurationReference
   map:
     fields:
     - name: name
       type:
         scalar: string
       default: ""
-- name: io.k8s.api.flowcontrol.v1.PriorityLevelConfigurationSpec
+- name: io.k8s.api.flowcontrol.v1alpha1.PriorityLevelConfigurationSpec
   map:
     fields:
     - name: exempt
       type:
-        namedType: io.k8s.api.flowcontrol.v1.ExemptPriorityLevelConfiguration
+        namedType: io.k8s.api.flowcontrol.v1alpha1.ExemptPriorityLevelConfiguration
     - name: limited
       type:
-        namedType: io.k8s.api.flowcontrol.v1.LimitedPriorityLevelConfiguration
+        namedType: io.k8s.api.flowcontrol.v1alpha1.LimitedPriorityLevelConfiguration
     - name: type
       type:
         scalar: string
@@ -9753,18 +9108,18 @@ var schemaYAML = typed.YAMLObject(`types:
         discriminatorValue: Exempt
       - fieldName: limited
         discriminatorValue: Limited
-- name: io.k8s.api.flowcontrol.v1.PriorityLevelConfigurationStatus
+- name: io.k8s.api.flowcontrol.v1alpha1.PriorityLevelConfigurationStatus
   map:
     fields:
     - name: conditions
       type:
         list:
           elementType:
-            namedType: io.k8s.api.flowcontrol.v1.PriorityLevelConfigurationCondition
+            namedType: io.k8s.api.flowcontrol.v1alpha1.PriorityLevelConfigurationCondition
           elementRelationship: associative
           keys:
           - type
-- name: io.k8s.api.flowcontrol.v1.QueuingConfiguration
+- name: io.k8s.api.flowcontrol.v1alpha1.QueuingConfiguration
   map:
     fields:
     - name: handSize
@@ -9779,7 +9134,7 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: numeric
       default: 0
-- name: io.k8s.api.flowcontrol.v1.ResourcePolicyRule
+- name: io.k8s.api.flowcontrol.v1alpha1.ResourcePolicyRule
   map:
     fields:
     - name: apiGroups
@@ -9809,7 +9164,7 @@ var schemaYAML = typed.YAMLObject(`types:
           elementType:
             scalar: string
           elementRelationship: associative
-- name: io.k8s.api.flowcontrol.v1.ServiceAccountSubject
+- name: io.k8s.api.flowcontrol.v1alpha1.ServiceAccountSubject
   map:
     fields:
     - name: name
@@ -9820,22 +9175,22 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
-- name: io.k8s.api.flowcontrol.v1.Subject
+- name: io.k8s.api.flowcontrol.v1alpha1.Subject
   map:
     fields:
     - name: group
       type:
-        namedType: io.k8s.api.flowcontrol.v1.GroupSubject
+        namedType: io.k8s.api.flowcontrol.v1alpha1.GroupSubject
     - name: kind
       type:
         scalar: string
       default: ""
     - name: serviceAccount
       type:
-        namedType: io.k8s.api.flowcontrol.v1.ServiceAccountSubject
+        namedType: io.k8s.api.flowcontrol.v1alpha1.ServiceAccountSubject
     - name: user
       type:
-        namedType: io.k8s.api.flowcontrol.v1.UserSubject
+        namedType: io.k8s.api.flowcontrol.v1alpha1.UserSubject
     unions:
     - discriminator: kind
       fields:
@@ -9845,7 +9200,7 @@ var schemaYAML = typed.YAMLObject(`types:
         discriminatorValue: ServiceAccount
       - fieldName: user
         discriminatorValue: User
-- name: io.k8s.api.flowcontrol.v1.UserSubject
+- name: io.k8s.api.flowcontrol.v1alpha1.UserSubject
   map:
     fields:
     - name: name
@@ -9895,6 +9250,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -10040,6 +9396,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -10221,6 +9578,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -10366,6 +9724,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -10547,6 +9906,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -10692,6 +10052,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -11203,7 +10564,41 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: number
       type:
         scalar: numeric
-    elementRelationship: atomic
+- name: io.k8s.api.networking.v1alpha1.ClusterCIDR
+  map:
+    fields:
+    - name: apiVersion
+      type:
+        scalar: string
+    - name: kind
+      type:
+        scalar: string
+    - name: metadata
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+      default: {}
+    - name: spec
+      type:
+        namedType: io.k8s.api.networking.v1alpha1.ClusterCIDRSpec
+      default: {}
+- name: io.k8s.api.networking.v1alpha1.ClusterCIDRSpec
+  map:
+    fields:
+    - name: ipv4
+      type:
+        scalar: string
+      default: ""
+    - name: ipv6
+      type:
+        scalar: string
+      default: ""
+    - name: nodeSelector
+      type:
+        namedType: io.k8s.api.core.v1.NodeSelector
+    - name: perNodeHostBits
+      type:
+        scalar: numeric
+      default: 0
 - name: io.k8s.api.networking.v1alpha1.IPAddress
   map:
     fields:
@@ -11242,47 +10637,9 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: resource
       type:
         scalar: string
-- name: io.k8s.api.networking.v1alpha1.ServiceCIDR
-  map:
-    fields:
-    - name: apiVersion
+    - name: uid
       type:
         scalar: string
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: io.k8s.api.networking.v1alpha1.ServiceCIDRSpec
-      default: {}
-    - name: status
-      type:
-        namedType: io.k8s.api.networking.v1alpha1.ServiceCIDRStatus
-      default: {}
-- name: io.k8s.api.networking.v1alpha1.ServiceCIDRSpec
-  map:
-    fields:
-    - name: cidrs
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
-- name: io.k8s.api.networking.v1alpha1.ServiceCIDRStatus
-  map:
-    fields:
-    - name: conditions
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
-          elementRelationship: associative
-          keys:
-          - type
 - name: io.k8s.api.networking.v1beta1.HTTPIngressPath
   map:
     fields:
@@ -11305,29 +10662,6 @@ var schemaYAML = typed.YAMLObject(`types:
           elementType:
             namedType: io.k8s.api.networking.v1beta1.HTTPIngressPath
           elementRelationship: atomic
-- name: io.k8s.api.networking.v1beta1.IPAddress
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: io.k8s.api.networking.v1beta1.IPAddressSpec
-      default: {}
-- name: io.k8s.api.networking.v1beta1.IPAddressSpec
-  map:
-    fields:
-    - name: parentRef
-      type:
-        namedType: io.k8s.api.networking.v1beta1.ParentReference
 - name: io.k8s.api.networking.v1beta1.Ingress
   map:
     fields:
@@ -11361,6 +10695,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: servicePort
       type:
         namedType: io.k8s.apimachinery.pkg.util.intstr.IntOrString
+      default: {}
 - name: io.k8s.api.networking.v1beta1.IngressClass
   map:
     fields:
@@ -11494,62 +10829,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: secretName
       type:
         scalar: string
-- name: io.k8s.api.networking.v1beta1.ParentReference
-  map:
-    fields:
-    - name: group
-      type:
-        scalar: string
-    - name: name
-      type:
-        scalar: string
-    - name: namespace
-      type:
-        scalar: string
-    - name: resource
-      type:
-        scalar: string
-- name: io.k8s.api.networking.v1beta1.ServiceCIDR
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: io.k8s.api.networking.v1beta1.ServiceCIDRSpec
-      default: {}
-    - name: status
-      type:
-        namedType: io.k8s.api.networking.v1beta1.ServiceCIDRStatus
-      default: {}
-- name: io.k8s.api.networking.v1beta1.ServiceCIDRSpec
-  map:
-    fields:
-    - name: cidrs
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
-- name: io.k8s.api.networking.v1beta1.ServiceCIDRStatus
-  map:
-    fields:
-    - name: conditions
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
-          elementRelationship: associative
-          keys:
-          - type
 - name: io.k8s.api.node.v1.Overhead
   map:
     fields:
@@ -11782,6 +11061,29 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: observedGeneration
       type:
         scalar: numeric
+- name: io.k8s.api.policy.v1beta1.AllowedCSIDriver
+  map:
+    fields:
+    - name: name
+      type:
+        scalar: string
+      default: ""
+- name: io.k8s.api.policy.v1beta1.AllowedFlexVolume
+  map:
+    fields:
+    - name: driver
+      type:
+        scalar: string
+      default: ""
+- name: io.k8s.api.policy.v1beta1.AllowedHostPath
+  map:
+    fields:
+    - name: pathPrefix
+      type:
+        scalar: string
+    - name: readOnly
+      type:
+        scalar: boolean
 - name: io.k8s.api.policy.v1beta1.Eviction
   map:
     fields:
@@ -11798,6 +11100,40 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
       default: {}
+- name: io.k8s.api.policy.v1beta1.FSGroupStrategyOptions
+  map:
+    fields:
+    - name: ranges
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.api.policy.v1beta1.IDRange
+          elementRelationship: atomic
+    - name: rule
+      type:
+        scalar: string
+- name: io.k8s.api.policy.v1beta1.HostPortRange
+  map:
+    fields:
+    - name: max
+      type:
+        scalar: numeric
+      default: 0
+    - name: min
+      type:
+        scalar: numeric
+      default: 0
+- name: io.k8s.api.policy.v1beta1.IDRange
+  map:
+    fields:
+    - name: max
+      type:
+        scalar: numeric
+      default: 0
+    - name: min
+      type:
+        scalar: numeric
+      default: 0
 - name: io.k8s.api.policy.v1beta1.PodDisruptionBudget
   map:
     fields:
@@ -11869,6 +11205,195 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: observedGeneration
       type:
         scalar: numeric
+- name: io.k8s.api.policy.v1beta1.PodSecurityPolicy
+  map:
+    fields:
+    - name: apiVersion
+      type:
+        scalar: string
+    - name: kind
+      type:
+        scalar: string
+    - name: metadata
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+      default: {}
+    - name: spec
+      type:
+        namedType: io.k8s.api.policy.v1beta1.PodSecurityPolicySpec
+      default: {}
+- name: io.k8s.api.policy.v1beta1.PodSecurityPolicySpec
+  map:
+    fields:
+    - name: allowPrivilegeEscalation
+      type:
+        scalar: boolean
+    - name: allowedCSIDrivers
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.api.policy.v1beta1.AllowedCSIDriver
+          elementRelationship: atomic
+    - name: allowedCapabilities
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
+    - name: allowedFlexVolumes
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.api.policy.v1beta1.AllowedFlexVolume
+          elementRelationship: atomic
+    - name: allowedHostPaths
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.api.policy.v1beta1.AllowedHostPath
+          elementRelationship: atomic
+    - name: allowedProcMountTypes
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
+    - name: allowedUnsafeSysctls
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
+    - name: defaultAddCapabilities
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
+    - name: defaultAllowPrivilegeEscalation
+      type:
+        scalar: boolean
+    - name: forbiddenSysctls
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
+    - name: fsGroup
+      type:
+        namedType: io.k8s.api.policy.v1beta1.FSGroupStrategyOptions
+      default: {}
+    - name: hostIPC
+      type:
+        scalar: boolean
+    - name: hostNetwork
+      type:
+        scalar: boolean
+    - name: hostPID
+      type:
+        scalar: boolean
+    - name: hostPorts
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.api.policy.v1beta1.HostPortRange
+          elementRelationship: atomic
+    - name: privileged
+      type:
+        scalar: boolean
+    - name: readOnlyRootFilesystem
+      type:
+        scalar: boolean
+    - name: requiredDropCapabilities
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
+    - name: runAsGroup
+      type:
+        namedType: io.k8s.api.policy.v1beta1.RunAsGroupStrategyOptions
+    - name: runAsUser
+      type:
+        namedType: io.k8s.api.policy.v1beta1.RunAsUserStrategyOptions
+      default: {}
+    - name: runtimeClass
+      type:
+        namedType: io.k8s.api.policy.v1beta1.RuntimeClassStrategyOptions
+    - name: seLinux
+      type:
+        namedType: io.k8s.api.policy.v1beta1.SELinuxStrategyOptions
+      default: {}
+    - name: supplementalGroups
+      type:
+        namedType: io.k8s.api.policy.v1beta1.SupplementalGroupsStrategyOptions
+      default: {}
+    - name: volumes
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
+- name: io.k8s.api.policy.v1beta1.RunAsGroupStrategyOptions
+  map:
+    fields:
+    - name: ranges
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.api.policy.v1beta1.IDRange
+          elementRelationship: atomic
+    - name: rule
+      type:
+        scalar: string
+      default: ""
+- name: io.k8s.api.policy.v1beta1.RunAsUserStrategyOptions
+  map:
+    fields:
+    - name: ranges
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.api.policy.v1beta1.IDRange
+          elementRelationship: atomic
+    - name: rule
+      type:
+        scalar: string
+      default: ""
+- name: io.k8s.api.policy.v1beta1.RuntimeClassStrategyOptions
+  map:
+    fields:
+    - name: allowedRuntimeClassNames
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
+    - name: defaultRuntimeClassName
+      type:
+        scalar: string
+- name: io.k8s.api.policy.v1beta1.SELinuxStrategyOptions
+  map:
+    fields:
+    - name: rule
+      type:
+        scalar: string
+      default: ""
+    - name: seLinuxOptions
+      type:
+        namedType: io.k8s.api.core.v1.SELinuxOptions
+- name: io.k8s.api.policy.v1beta1.SupplementalGroupsStrategyOptions
+  map:
+    fields:
+    - name: ranges
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.api.policy.v1beta1.IDRange
+          elementRelationship: atomic
+    - name: rule
+      type:
+        scalar: string
 - name: io.k8s.api.rbac.v1.AggregationRule
   map:
     fields:
@@ -12354,155 +11879,22 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: namespace
       type:
         scalar: string
-- name: io.k8s.api.resource.v1alpha3.AllocatedDeviceStatus
+- name: io.k8s.api.resource.v1alpha2.AllocationResult
   map:
     fields:
-    - name: conditions
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
-          elementRelationship: associative
-          keys:
-          - type
-    - name: data
-      type:
-        namedType: __untyped_atomic_
-    - name: device
-      type:
-        scalar: string
-      default: ""
-    - name: driver
-      type:
-        scalar: string
-      default: ""
-    - name: networkData
-      type:
-        namedType: io.k8s.api.resource.v1alpha3.NetworkDeviceData
-    - name: pool
-      type:
-        scalar: string
-      default: ""
-- name: io.k8s.api.resource.v1alpha3.AllocationResult
-  map:
-    fields:
-    - name: devices
-      type:
-        namedType: io.k8s.api.resource.v1alpha3.DeviceAllocationResult
-      default: {}
-    - name: nodeSelector
+    - name: availableOnNodes
       type:
         namedType: io.k8s.api.core.v1.NodeSelector
-- name: io.k8s.api.resource.v1alpha3.BasicDevice
-  map:
-    fields:
-    - name: attributes
-      type:
-        map:
-          elementType:
-            namedType: io.k8s.api.resource.v1alpha3.DeviceAttribute
-    - name: capacity
-      type:
-        map:
-          elementType:
-            namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
-- name: io.k8s.api.resource.v1alpha3.CELDeviceSelector
-  map:
-    fields:
-    - name: expression
-      type:
-        scalar: string
-      default: ""
-- name: io.k8s.api.resource.v1alpha3.Device
-  map:
-    fields:
-    - name: basic
-      type:
-        namedType: io.k8s.api.resource.v1alpha3.BasicDevice
-    - name: name
-      type:
-        scalar: string
-      default: ""
-- name: io.k8s.api.resource.v1alpha3.DeviceAllocationConfiguration
-  map:
-    fields:
-    - name: opaque
-      type:
-        namedType: io.k8s.api.resource.v1alpha3.OpaqueDeviceConfiguration
-    - name: requests
+    - name: resourceHandles
       type:
         list:
           elementType:
-            scalar: string
+            namedType: io.k8s.api.resource.v1alpha2.ResourceHandle
           elementRelationship: atomic
-    - name: source
-      type:
-        scalar: string
-      default: ""
-- name: io.k8s.api.resource.v1alpha3.DeviceAllocationResult
-  map:
-    fields:
-    - name: config
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1alpha3.DeviceAllocationConfiguration
-          elementRelationship: atomic
-    - name: results
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1alpha3.DeviceRequestAllocationResult
-          elementRelationship: atomic
-- name: io.k8s.api.resource.v1alpha3.DeviceAttribute
-  map:
-    fields:
-    - name: bool
+    - name: shareable
       type:
         scalar: boolean
-    - name: int
-      type:
-        scalar: numeric
-    - name: string
-      type:
-        scalar: string
-    - name: version
-      type:
-        scalar: string
-- name: io.k8s.api.resource.v1alpha3.DeviceClaim
-  map:
-    fields:
-    - name: config
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1alpha3.DeviceClaimConfiguration
-          elementRelationship: atomic
-    - name: constraints
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1alpha3.DeviceConstraint
-          elementRelationship: atomic
-    - name: requests
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1alpha3.DeviceRequest
-          elementRelationship: atomic
-- name: io.k8s.api.resource.v1alpha3.DeviceClaimConfiguration
-  map:
-    fields:
-    - name: opaque
-      type:
-        namedType: io.k8s.api.resource.v1alpha3.OpaqueDeviceConfiguration
-    - name: requests
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
-- name: io.k8s.api.resource.v1alpha3.DeviceClass
+- name: io.k8s.api.resource.v1alpha2.PodSchedulingContext
   map:
     fields:
     - name: apiVersion
@@ -12517,142 +11909,57 @@ var schemaYAML = typed.YAMLObject(`types:
       default: {}
     - name: spec
       type:
-        namedType: io.k8s.api.resource.v1alpha3.DeviceClassSpec
-      default: {}
-- name: io.k8s.api.resource.v1alpha3.DeviceClassConfiguration
-  map:
-    fields:
-    - name: opaque
-      type:
-        namedType: io.k8s.api.resource.v1alpha3.OpaqueDeviceConfiguration
-- name: io.k8s.api.resource.v1alpha3.DeviceClassSpec
-  map:
-    fields:
-    - name: config
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1alpha3.DeviceClassConfiguration
-          elementRelationship: atomic
-    - name: selectors
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1alpha3.DeviceSelector
-          elementRelationship: atomic
-- name: io.k8s.api.resource.v1alpha3.DeviceConstraint
-  map:
-    fields:
-    - name: matchAttribute
-      type:
-        scalar: string
-    - name: requests
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
-- name: io.k8s.api.resource.v1alpha3.DeviceRequest
-  map:
-    fields:
-    - name: adminAccess
-      type:
-        scalar: boolean
-    - name: allocationMode
-      type:
-        scalar: string
-    - name: count
-      type:
-        scalar: numeric
-    - name: deviceClassName
-      type:
-        scalar: string
-      default: ""
-    - name: name
-      type:
-        scalar: string
-      default: ""
-    - name: selectors
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1alpha3.DeviceSelector
-          elementRelationship: atomic
-- name: io.k8s.api.resource.v1alpha3.DeviceRequestAllocationResult
-  map:
-    fields:
-    - name: adminAccess
-      type:
-        scalar: boolean
-    - name: device
-      type:
-        scalar: string
-      default: ""
-    - name: driver
-      type:
-        scalar: string
-      default: ""
-    - name: pool
-      type:
-        scalar: string
-      default: ""
-    - name: request
-      type:
-        scalar: string
-      default: ""
-- name: io.k8s.api.resource.v1alpha3.DeviceSelector
-  map:
-    fields:
-    - name: cel
-      type:
-        namedType: io.k8s.api.resource.v1alpha3.CELDeviceSelector
-- name: io.k8s.api.resource.v1alpha3.NetworkDeviceData
-  map:
-    fields:
-    - name: hardwareAddress
-      type:
-        scalar: string
-    - name: interfaceName
-      type:
-        scalar: string
-    - name: ips
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
-- name: io.k8s.api.resource.v1alpha3.OpaqueDeviceConfiguration
-  map:
-    fields:
-    - name: driver
-      type:
-        scalar: string
-      default: ""
-    - name: parameters
-      type:
-        namedType: __untyped_atomic_
-- name: io.k8s.api.resource.v1alpha3.ResourceClaim
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: io.k8s.api.resource.v1alpha3.ResourceClaimSpec
+        namedType: io.k8s.api.resource.v1alpha2.PodSchedulingContextSpec
       default: {}
     - name: status
       type:
-        namedType: io.k8s.api.resource.v1alpha3.ResourceClaimStatus
+        namedType: io.k8s.api.resource.v1alpha2.PodSchedulingContextStatus
       default: {}
-- name: io.k8s.api.resource.v1alpha3.ResourceClaimConsumerReference
+- name: io.k8s.api.resource.v1alpha2.PodSchedulingContextSpec
+  map:
+    fields:
+    - name: potentialNodes
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: associative
+    - name: selectedNode
+      type:
+        scalar: string
+- name: io.k8s.api.resource.v1alpha2.PodSchedulingContextStatus
+  map:
+    fields:
+    - name: resourceClaims
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.api.resource.v1alpha2.ResourceClaimSchedulingStatus
+          elementRelationship: associative
+          keys:
+          - name
+- name: io.k8s.api.resource.v1alpha2.ResourceClaim
+  map:
+    fields:
+    - name: apiVersion
+      type:
+        scalar: string
+    - name: kind
+      type:
+        scalar: string
+    - name: metadata
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+      default: {}
+    - name: spec
+      type:
+        namedType: io.k8s.api.resource.v1alpha2.ResourceClaimSpec
+      default: {}
+    - name: status
+      type:
+        namedType: io.k8s.api.resource.v1alpha2.ResourceClaimStatus
+      default: {}
+- name: io.k8s.api.resource.v1alpha2.ResourceClaimConsumerReference
   map:
     fields:
     - name: apiGroup
@@ -12670,477 +11977,66 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
-- name: io.k8s.api.resource.v1alpha3.ResourceClaimSpec
-  map:
-    fields:
-    - name: devices
-      type:
-        namedType: io.k8s.api.resource.v1alpha3.DeviceClaim
-      default: {}
-- name: io.k8s.api.resource.v1alpha3.ResourceClaimStatus
-  map:
-    fields:
-    - name: allocation
-      type:
-        namedType: io.k8s.api.resource.v1alpha3.AllocationResult
-    - name: devices
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1alpha3.AllocatedDeviceStatus
-          elementRelationship: associative
-          keys:
-          - driver
-          - device
-          - pool
-    - name: reservedFor
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1alpha3.ResourceClaimConsumerReference
-          elementRelationship: associative
-          keys:
-          - uid
-- name: io.k8s.api.resource.v1alpha3.ResourceClaimTemplate
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: io.k8s.api.resource.v1alpha3.ResourceClaimTemplateSpec
-      default: {}
-- name: io.k8s.api.resource.v1alpha3.ResourceClaimTemplateSpec
-  map:
-    fields:
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: io.k8s.api.resource.v1alpha3.ResourceClaimSpec
-      default: {}
-- name: io.k8s.api.resource.v1alpha3.ResourcePool
-  map:
-    fields:
-    - name: generation
-      type:
-        scalar: numeric
-      default: 0
-    - name: name
-      type:
-        scalar: string
-      default: ""
-    - name: resourceSliceCount
-      type:
-        scalar: numeric
-      default: 0
-- name: io.k8s.api.resource.v1alpha3.ResourceSlice
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: io.k8s.api.resource.v1alpha3.ResourceSliceSpec
-      default: {}
-- name: io.k8s.api.resource.v1alpha3.ResourceSliceSpec
-  map:
-    fields:
-    - name: allNodes
-      type:
-        scalar: boolean
-    - name: devices
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1alpha3.Device
-          elementRelationship: atomic
-    - name: driver
-      type:
-        scalar: string
-      default: ""
-    - name: nodeName
-      type:
-        scalar: string
-    - name: nodeSelector
-      type:
-        namedType: io.k8s.api.core.v1.NodeSelector
-    - name: pool
-      type:
-        namedType: io.k8s.api.resource.v1alpha3.ResourcePool
-      default: {}
-- name: io.k8s.api.resource.v1beta1.AllocatedDeviceStatus
-  map:
-    fields:
-    - name: conditions
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
-          elementRelationship: associative
-          keys:
-          - type
-    - name: data
-      type:
-        namedType: __untyped_atomic_
-    - name: device
-      type:
-        scalar: string
-      default: ""
-    - name: driver
-      type:
-        scalar: string
-      default: ""
-    - name: networkData
-      type:
-        namedType: io.k8s.api.resource.v1beta1.NetworkDeviceData
-    - name: pool
-      type:
-        scalar: string
-      default: ""
-- name: io.k8s.api.resource.v1beta1.AllocationResult
-  map:
-    fields:
-    - name: devices
-      type:
-        namedType: io.k8s.api.resource.v1beta1.DeviceAllocationResult
-      default: {}
-    - name: nodeSelector
-      type:
-        namedType: io.k8s.api.core.v1.NodeSelector
-- name: io.k8s.api.resource.v1beta1.BasicDevice
-  map:
-    fields:
-    - name: attributes
-      type:
-        map:
-          elementType:
-            namedType: io.k8s.api.resource.v1beta1.DeviceAttribute
-    - name: capacity
-      type:
-        map:
-          elementType:
-            namedType: io.k8s.api.resource.v1beta1.DeviceCapacity
-- name: io.k8s.api.resource.v1beta1.CELDeviceSelector
-  map:
-    fields:
-    - name: expression
-      type:
-        scalar: string
-      default: ""
-- name: io.k8s.api.resource.v1beta1.Device
-  map:
-    fields:
-    - name: basic
-      type:
-        namedType: io.k8s.api.resource.v1beta1.BasicDevice
-    - name: name
-      type:
-        scalar: string
-      default: ""
-- name: io.k8s.api.resource.v1beta1.DeviceAllocationConfiguration
-  map:
-    fields:
-    - name: opaque
-      type:
-        namedType: io.k8s.api.resource.v1beta1.OpaqueDeviceConfiguration
-    - name: requests
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
-    - name: source
-      type:
-        scalar: string
-      default: ""
-- name: io.k8s.api.resource.v1beta1.DeviceAllocationResult
-  map:
-    fields:
-    - name: config
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1beta1.DeviceAllocationConfiguration
-          elementRelationship: atomic
-    - name: results
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1beta1.DeviceRequestAllocationResult
-          elementRelationship: atomic
-- name: io.k8s.api.resource.v1beta1.DeviceAttribute
-  map:
-    fields:
-    - name: bool
-      type:
-        scalar: boolean
-    - name: int
-      type:
-        scalar: numeric
-    - name: string
-      type:
-        scalar: string
-    - name: version
-      type:
-        scalar: string
-- name: io.k8s.api.resource.v1beta1.DeviceCapacity
-  map:
-    fields:
-    - name: value
-      type:
-        namedType: io.k8s.apimachinery.pkg.api.resource.Quantity
-- name: io.k8s.api.resource.v1beta1.DeviceClaim
-  map:
-    fields:
-    - name: config
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1beta1.DeviceClaimConfiguration
-          elementRelationship: atomic
-    - name: constraints
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1beta1.DeviceConstraint
-          elementRelationship: atomic
-    - name: requests
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1beta1.DeviceRequest
-          elementRelationship: atomic
-- name: io.k8s.api.resource.v1beta1.DeviceClaimConfiguration
-  map:
-    fields:
-    - name: opaque
-      type:
-        namedType: io.k8s.api.resource.v1beta1.OpaqueDeviceConfiguration
-    - name: requests
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
-- name: io.k8s.api.resource.v1beta1.DeviceClass
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: io.k8s.api.resource.v1beta1.DeviceClassSpec
-      default: {}
-- name: io.k8s.api.resource.v1beta1.DeviceClassConfiguration
-  map:
-    fields:
-    - name: opaque
-      type:
-        namedType: io.k8s.api.resource.v1beta1.OpaqueDeviceConfiguration
-- name: io.k8s.api.resource.v1beta1.DeviceClassSpec
-  map:
-    fields:
-    - name: config
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1beta1.DeviceClassConfiguration
-          elementRelationship: atomic
-    - name: selectors
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1beta1.DeviceSelector
-          elementRelationship: atomic
-- name: io.k8s.api.resource.v1beta1.DeviceConstraint
-  map:
-    fields:
-    - name: matchAttribute
-      type:
-        scalar: string
-    - name: requests
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
-- name: io.k8s.api.resource.v1beta1.DeviceRequest
-  map:
-    fields:
-    - name: adminAccess
-      type:
-        scalar: boolean
-    - name: allocationMode
-      type:
-        scalar: string
-    - name: count
-      type:
-        scalar: numeric
-    - name: deviceClassName
-      type:
-        scalar: string
-      default: ""
-    - name: name
-      type:
-        scalar: string
-      default: ""
-    - name: selectors
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1beta1.DeviceSelector
-          elementRelationship: atomic
-- name: io.k8s.api.resource.v1beta1.DeviceRequestAllocationResult
-  map:
-    fields:
-    - name: adminAccess
-      type:
-        scalar: boolean
-    - name: device
-      type:
-        scalar: string
-      default: ""
-    - name: driver
-      type:
-        scalar: string
-      default: ""
-    - name: pool
-      type:
-        scalar: string
-      default: ""
-    - name: request
-      type:
-        scalar: string
-      default: ""
-- name: io.k8s.api.resource.v1beta1.DeviceSelector
-  map:
-    fields:
-    - name: cel
-      type:
-        namedType: io.k8s.api.resource.v1beta1.CELDeviceSelector
-- name: io.k8s.api.resource.v1beta1.NetworkDeviceData
-  map:
-    fields:
-    - name: hardwareAddress
-      type:
-        scalar: string
-    - name: interfaceName
-      type:
-        scalar: string
-    - name: ips
-      type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
-- name: io.k8s.api.resource.v1beta1.OpaqueDeviceConfiguration
-  map:
-    fields:
-    - name: driver
-      type:
-        scalar: string
-      default: ""
-    - name: parameters
-      type:
-        namedType: __untyped_atomic_
-- name: io.k8s.api.resource.v1beta1.ResourceClaim
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: io.k8s.api.resource.v1beta1.ResourceClaimSpec
-      default: {}
-    - name: status
-      type:
-        namedType: io.k8s.api.resource.v1beta1.ResourceClaimStatus
-      default: {}
-- name: io.k8s.api.resource.v1beta1.ResourceClaimConsumerReference
+- name: io.k8s.api.resource.v1alpha2.ResourceClaimParametersReference
   map:
     fields:
     - name: apiGroup
       type:
         scalar: string
+    - name: kind
+      type:
+        scalar: string
+      default: ""
     - name: name
       type:
         scalar: string
       default: ""
-    - name: resource
-      type:
-        scalar: string
-      default: ""
-    - name: uid
-      type:
-        scalar: string
-      default: ""
-- name: io.k8s.api.resource.v1beta1.ResourceClaimSpec
+- name: io.k8s.api.resource.v1alpha2.ResourceClaimSchedulingStatus
   map:
     fields:
-    - name: devices
+    - name: name
       type:
-        namedType: io.k8s.api.resource.v1beta1.DeviceClaim
-      default: {}
-- name: io.k8s.api.resource.v1beta1.ResourceClaimStatus
+        scalar: string
+    - name: unsuitableNodes
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: associative
+- name: io.k8s.api.resource.v1alpha2.ResourceClaimSpec
+  map:
+    fields:
+    - name: allocationMode
+      type:
+        scalar: string
+    - name: parametersRef
+      type:
+        namedType: io.k8s.api.resource.v1alpha2.ResourceClaimParametersReference
+    - name: resourceClassName
+      type:
+        scalar: string
+      default: ""
+- name: io.k8s.api.resource.v1alpha2.ResourceClaimStatus
   map:
     fields:
     - name: allocation
       type:
-        namedType: io.k8s.api.resource.v1beta1.AllocationResult
-    - name: devices
+        namedType: io.k8s.api.resource.v1alpha2.AllocationResult
+    - name: deallocationRequested
       type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1beta1.AllocatedDeviceStatus
-          elementRelationship: associative
-          keys:
-          - driver
-          - device
-          - pool
+        scalar: boolean
+    - name: driverName
+      type:
+        scalar: string
     - name: reservedFor
       type:
         list:
           elementType:
-            namedType: io.k8s.api.resource.v1beta1.ResourceClaimConsumerReference
+            namedType: io.k8s.api.resource.v1alpha2.ResourceClaimConsumerReference
           elementRelationship: associative
           keys:
           - uid
-- name: io.k8s.api.resource.v1beta1.ResourceClaimTemplate
+- name: io.k8s.api.resource.v1alpha2.ResourceClaimTemplate
   map:
     fields:
     - name: apiVersion
@@ -13155,9 +12051,9 @@ var schemaYAML = typed.YAMLObject(`types:
       default: {}
     - name: spec
       type:
-        namedType: io.k8s.api.resource.v1beta1.ResourceClaimTemplateSpec
+        namedType: io.k8s.api.resource.v1alpha2.ResourceClaimTemplateSpec
       default: {}
-- name: io.k8s.api.resource.v1beta1.ResourceClaimTemplateSpec
+- name: io.k8s.api.resource.v1alpha2.ResourceClaimTemplateSpec
   map:
     fields:
     - name: metadata
@@ -13166,66 +12062,57 @@ var schemaYAML = typed.YAMLObject(`types:
       default: {}
     - name: spec
       type:
-        namedType: io.k8s.api.resource.v1beta1.ResourceClaimSpec
+        namedType: io.k8s.api.resource.v1alpha2.ResourceClaimSpec
       default: {}
-- name: io.k8s.api.resource.v1beta1.ResourcePool
+- name: io.k8s.api.resource.v1alpha2.ResourceClass
   map:
     fields:
-    - name: generation
+    - name: apiVersion
       type:
-        scalar: numeric
-      default: 0
+        scalar: string
+    - name: driverName
+      type:
+        scalar: string
+      default: ""
+    - name: kind
+      type:
+        scalar: string
+    - name: metadata
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+      default: {}
+    - name: parametersRef
+      type:
+        namedType: io.k8s.api.resource.v1alpha2.ResourceClassParametersReference
+    - name: suitableNodes
+      type:
+        namedType: io.k8s.api.core.v1.NodeSelector
+- name: io.k8s.api.resource.v1alpha2.ResourceClassParametersReference
+  map:
+    fields:
+    - name: apiGroup
+      type:
+        scalar: string
+    - name: kind
+      type:
+        scalar: string
+      default: ""
     - name: name
       type:
         scalar: string
       default: ""
-    - name: resourceSliceCount
+    - name: namespace
       type:
-        scalar: numeric
-      default: 0
-- name: io.k8s.api.resource.v1beta1.ResourceSlice
+        scalar: string
+- name: io.k8s.api.resource.v1alpha2.ResourceHandle
   map:
     fields:
-    - name: apiVersion
+    - name: data
       type:
         scalar: string
-    - name: kind
+    - name: driverName
       type:
         scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: io.k8s.api.resource.v1beta1.ResourceSliceSpec
-      default: {}
-- name: io.k8s.api.resource.v1beta1.ResourceSliceSpec
-  map:
-    fields:
-    - name: allNodes
-      type:
-        scalar: boolean
-    - name: devices
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.resource.v1beta1.Device
-          elementRelationship: atomic
-    - name: driver
-      type:
-        scalar: string
-      default: ""
-    - name: nodeName
-      type:
-        scalar: string
-    - name: nodeSelector
-      type:
-        namedType: io.k8s.api.core.v1.NodeSelector
-    - name: pool
-      type:
-        namedType: io.k8s.api.resource.v1beta1.ResourcePool
-      default: {}
 - name: io.k8s.api.scheduling.v1.PriorityClass
   map:
     fields:
@@ -13553,6 +12440,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: time
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
 - name: io.k8s.api.storage.v1.VolumeNodeResources
   map:
     fields:
@@ -13648,28 +12536,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: detachError
       type:
         namedType: io.k8s.api.storage.v1alpha1.VolumeError
-- name: io.k8s.api.storage.v1alpha1.VolumeAttributesClass
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: driverName
-      type:
-        scalar: string
-      default: ""
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: parameters
-      type:
-        map:
-          elementType:
-            scalar: string
 - name: io.k8s.api.storage.v1alpha1.VolumeError
   map:
     fields:
@@ -13679,6 +12545,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: time
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
 - name: io.k8s.api.storage.v1beta1.CSIDriver
   map:
     fields:
@@ -13919,28 +12786,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: detachError
       type:
         namedType: io.k8s.api.storage.v1beta1.VolumeError
-- name: io.k8s.api.storage.v1beta1.VolumeAttributesClass
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: driverName
-      type:
-        scalar: string
-      default: ""
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: parameters
-      type:
-        map:
-          elementType:
-            scalar: string
 - name: io.k8s.api.storage.v1beta1.VolumeError
   map:
     fields:
@@ -13950,89 +12795,13 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: time
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
 - name: io.k8s.api.storage.v1beta1.VolumeNodeResources
   map:
     fields:
     - name: count
       type:
         scalar: numeric
-- name: io.k8s.api.storagemigration.v1alpha1.GroupVersionResource
-  map:
-    fields:
-    - name: group
-      type:
-        scalar: string
-    - name: resource
-      type:
-        scalar: string
-    - name: version
-      type:
-        scalar: string
-- name: io.k8s.api.storagemigration.v1alpha1.MigrationCondition
-  map:
-    fields:
-    - name: lastUpdateTime
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
-    - name: message
-      type:
-        scalar: string
-    - name: reason
-      type:
-        scalar: string
-    - name: status
-      type:
-        scalar: string
-      default: ""
-    - name: type
-      type:
-        scalar: string
-      default: ""
-- name: io.k8s.api.storagemigration.v1alpha1.StorageVersionMigration
-  map:
-    fields:
-    - name: apiVersion
-      type:
-        scalar: string
-    - name: kind
-      type:
-        scalar: string
-    - name: metadata
-      type:
-        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-      default: {}
-    - name: spec
-      type:
-        namedType: io.k8s.api.storagemigration.v1alpha1.StorageVersionMigrationSpec
-      default: {}
-    - name: status
-      type:
-        namedType: io.k8s.api.storagemigration.v1alpha1.StorageVersionMigrationStatus
-      default: {}
-- name: io.k8s.api.storagemigration.v1alpha1.StorageVersionMigrationSpec
-  map:
-    fields:
-    - name: continueToken
-      type:
-        scalar: string
-    - name: resource
-      type:
-        namedType: io.k8s.api.storagemigration.v1alpha1.GroupVersionResource
-      default: {}
-- name: io.k8s.api.storagemigration.v1alpha1.StorageVersionMigrationStatus
-  map:
-    fields:
-    - name: conditions
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.storagemigration.v1alpha1.MigrationCondition
-          elementRelationship: associative
-          keys:
-          - type
-    - name: resourceVersion
-      type:
-        scalar: string
 - name: io.k8s.apimachinery.pkg.api.resource.Quantity
   scalar: untyped
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
@@ -14041,6 +12810,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastTransitionTime
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: message
       type:
         scalar: string
@@ -14075,9 +12845,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: gracePeriodSeconds
       type:
         scalar: numeric
-    - name: ignoreStoreReadErrorWithClusterBreakingPotential
-      type:
-        scalar: boolean
     - name: kind
       type:
         scalar: string
@@ -14171,6 +12938,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: creationTimestamp
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+      default: {}
     - name: deletionGracePeriodSeconds
       type:
         scalar: numeric
