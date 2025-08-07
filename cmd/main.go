@@ -25,6 +25,10 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -35,7 +39,12 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
+	securityv1 "github.com/openshift/api/security/v1"
+
+	ocicapioperatorv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
+	infrastructurev1beta2 "github.com/oracle/cluster-api-provider-oci/api/v1beta2"
+	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+
 	"github.com/openshift/oci-capi-operator/internal/controllers"
 	// +kubebuilder:scaffold:imports
 )
@@ -48,7 +57,16 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(capiv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(corev1.AddToScheme(scheme))
+	utilruntime.Must(rbacv1.AddToScheme(scheme))
+	utilruntime.Must(admissionregistrationv1.AddToScheme(scheme))
+	utilruntime.Must(appsv1.AddToScheme(scheme))
+
+	utilruntime.Must(ocicapioperatorv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(infrastructurev1beta2.AddToScheme(scheme))
+	utilruntime.Must(capiv1beta1.AddToScheme(scheme))
+	utilruntime.Must(securityv1.AddToScheme(scheme))
+
 	// +kubebuilder:scaffold:scheme
 }
 
