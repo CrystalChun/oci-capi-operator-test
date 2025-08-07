@@ -31,7 +31,7 @@ func NewComponent(capociNamespace string, autoscaler *capiv1alpha1.OCIClusterAut
 	role, roleMutateFn := Role(capociNamespace, scheme, autoscaler)
 	roleBinding, roleBindingMutateFn := RoleBinding(capociNamespace, scheme, autoscaler)
 	return &components.Component{
-		Name: "capoci",
+		Name: "CAPOCI",
 		Subcomponents: components.SubcomponentList{
 			{Name: "namespace", Object: namespace, MutateFn: namespaceMutateFn},
 			{Name: "serviceAccount", Object: serviceAccount, MutateFn: serviceAccountMutateFn},
