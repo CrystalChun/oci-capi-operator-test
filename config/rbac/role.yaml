@@ -42,6 +42,32 @@ rules:
   - update
   - watch
 - apiGroups:
+  - capi.openshift.io
+  resources:
+  - ociclusterautoscalers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - capi.openshift.io
+  resources:
+  - ociclusterautoscalers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - capi.openshift.io
+  resources:
+  - ociclusterautoscalers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - certificates.k8s.io
   resources:
   - certificatesigningrequests
@@ -54,6 +80,8 @@ rules:
   - cluster.x-k8s.io
   resources:
   - clusters
+  - machinedeployments
+  - machinetemplates
   verbs:
   - create
   - delete
@@ -66,12 +94,15 @@ rules:
   - cluster.x-k8s.io
   resources:
   - clusters/finalizers
+  - machinedeployments/finalizers
   verbs:
   - update
 - apiGroups:
   - cluster.x-k8s.io
   resources:
   - clusters/status
+  - machinedeployments/status
+  - machinetemplates/status
   verbs:
   - get
   - patch
@@ -95,40 +126,19 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - ocicluster/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
   - ocimachines
   verbs:
   - get
   - list
   - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  - ocicapiv1alpha1.openshift.io
-  resources:
-  - ociclusterautoscalers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  - ocicapiv1alpha1.openshift.io
-  resources:
-  - ociclusterautoscalers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  - ocicapiv1alpha1.openshift.io
-  resources:
-  - ociclusterautoscalers/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
