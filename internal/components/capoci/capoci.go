@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-openapi/swag"
 
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,10 +20,22 @@ import (
 // NewComponent returns a Component for the CAPOCI controller manager
 func NewComponent(capociNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) *components.Component {
 	deploy, deployMutateFn := CAPOCIDeployment(capociNamespace, scheme, autoscaler)
+	service, serviceMutateFn := WebhookService(capociNamespace, scheme, autoscaler)
+
+	mutatingWebhookConfiguration, mutatingWebhookConfigurationMutateFn := MutatingWebhookConfiguration(capociNamespace, scheme, autoscaler)
+	validatingWebhookConfiguration, validatingWebhookConfigurationMutateFn := ValidatingWebhookConfiguration(capociNamespace, scheme, autoscaler)
+
+	role, roleMutateFn := Role(capociNamespace, scheme, autoscaler)
+	roleBinding, roleBindingMutateFn := RoleBinding(capociNamespace, scheme, autoscaler)
 	return &components.Component{
 		Name: "capoci",
 		Subcomponents: components.SubcomponentList{
 			{Name: "deployment", Object: deploy, MutateFn: deployMutateFn},
+			{Name: "service", Object: service, MutateFn: serviceMutateFn},
+			{Name: "mutatingWebhookConfiguration", Object: mutatingWebhookConfiguration, MutateFn: mutatingWebhookConfigurationMutateFn},
+			{Name: "validatingWebhookConfiguration", Object: validatingWebhookConfiguration, MutateFn: validatingWebhookConfigurationMutateFn},
+			{Name: "role", Object: role, MutateFn: roleMutateFn},
+			{Name: "roleBinding", Object: roleBinding, MutateFn: roleBindingMutateFn},
 		},
 	}
 }
@@ -286,6 +299,51 @@ func OCICredentialsSecret(namespace string, privateKey []byte, autoscaler *capiv
 	return secret, mutateFn
 }
 
+func WebhookService(capociNamespace string, scheme *runtime.Scheme, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "capoci-webhook-service",
+			Namespace: capociNamespace,
+		},
+	}
+
+	mutateFn := func() error {
+		return controllerutil.SetControllerReference(instance, service, scheme)
+	}
+
+	return service, mutateFn
+}
+
+func MutatingWebhookConfiguration(capociNamespace string, scheme *runtime.Scheme, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+	mutatingWebhookConfiguration := &admissionregistrationv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "capoci-mutating-webhook-configuration",
+			Namespace: capociNamespace,
+		},
+	}
+
+	mutateFn := func() error {
+		return controllerutil.SetControllerReference(instance, mutatingWebhookConfiguration, scheme)
+	}
+
+	return mutatingWebhookConfiguration, mutateFn
+}
+
+func ValidatingWebhookConfiguration(capociNamespace string, scheme *runtime.Scheme, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+	validatingWebhookConfiguration := &admissionregistrationv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "capoci-validating-webhook-configuration",
+			Namespace: capociNamespace,
+		},
+	}
+
+	mutateFn := func() error {
+		return controllerutil.SetControllerReference(instance, validatingWebhookConfiguration, scheme)
+	}
+
+	return validatingWebhookConfiguration, mutateFn
+}
+
 // TODO: capoci-validating-webhook-configuration and mutating, service for webhook
-// TODO: clusterrole, clusterrolebinding, role, rolebinding
+// TODO: clusterrole, clusterrolebinding
 // TODO: configmap Creating ConfigMap="capoci-manager-config" Namespace="cluster-api-provider-oci-system"
