@@ -3,8 +3,7 @@ package enableautoscaler
 import (
 	"fmt"
 
-	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
-	ocicapiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
+	ocicapioperatorv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	"github.com/openshift/oci-capi-operator/internal/components"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -18,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func NewComponent(capiSystemNamespace string, image string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) *components.Component {
+func NewComponent(capiSystemNamespace string, image string, autoscaler *ocicapioperatorv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) *components.Component {
 	ociCluster, ociClusterMutateFn := OCICluster(capiSystemNamespace, autoscaler)
 	cluster, clusterMutateFn := CAPICluster(capiSystemNamespace, autoscaler)
 	machineTemplate, machineTemplateMutateFn := OCIMachineTemplate(capiSystemNamespace, autoscaler)
@@ -35,7 +34,7 @@ func NewComponent(capiSystemNamespace string, image string, autoscaler *capiv1al
 	}
 }
 
-func OCICluster(capiSystemNamespace string, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) { // Create OCICluster
+func OCICluster(capiSystemNamespace string, instance *ocicapioperatorv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) { // Create OCICluster
 	ociCluster := &infrastructurev1beta2.OCICluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
@@ -78,7 +77,7 @@ func OCICluster(capiSystemNamespace string, instance *ocicapiv1alpha1.OCICluster
 	return ociCluster, mutateFn
 }
 
-func CAPICluster(capiSystemNamespace string, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+func CAPICluster(capiSystemNamespace string, instance *ocicapioperatorv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
 	cluster := &capiv1beta1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
@@ -113,7 +112,7 @@ func CAPICluster(capiSystemNamespace string, instance *ocicapiv1alpha1.OCICluste
 	return cluster, mutateFn
 }
 
-func OCIMachineTemplate(capiSystemNamespace string, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+func OCIMachineTemplate(capiSystemNamespace string, instance *ocicapioperatorv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
 	machineTemplate := &infrastructurev1beta2.OCIMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-autoscaling", instance.Name),
@@ -141,7 +140,7 @@ func OCIMachineTemplate(capiSystemNamespace string, instance *ocicapiv1alpha1.OC
 	return machineTemplate, mutateFn
 }
 
-func MachineDeployment(capiSystemNamespace string, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+func MachineDeployment(capiSystemNamespace string, instance *ocicapioperatorv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
 	machineDeployment := &capiv1beta1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
