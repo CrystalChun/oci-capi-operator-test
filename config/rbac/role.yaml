@@ -5,6 +5,19 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  - validatingwebhookconfigurations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - apiextensions.k8s.io
   resources:
   - customresourcedefinitions
@@ -29,32 +42,6 @@ rules:
   - update
   - watch
 - apiGroups:
-  - capi.openshift.io
-  resources:
-  - ociclusterautoscalers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - capi.openshift.io
-  resources:
-  - ociclusterautoscalers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - capi.openshift.io
-  resources:
-  - ociclusterautoscalers/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - certificates.k8s.io
   resources:
   - certificatesigningrequests
@@ -64,11 +51,39 @@ rules:
   - update
   - watch
 - apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - clusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - clusters/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - clusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - ""
   resources:
   - configmaps
+  - namespaces
   - secrets
   - serviceaccounts
+  - services
   verbs:
   - create
   - delete
@@ -85,6 +100,35 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  - ocicapiv1alpha1.openshift.io
+  resources:
+  - ociclusterautoscalers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  - ocicapiv1alpha1.openshift.io
+  resources:
+  - ociclusterautoscalers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  - ocicapiv1alpha1.openshift.io
+  resources:
+  - ociclusterautoscalers/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
