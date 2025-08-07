@@ -35,7 +35,7 @@ func NewComponent(capiSystemNamespace string, autoscaler *capiv1alpha1.OCICluste
 	clusterRoleBinding, clusterRoleBindingMutateFn := ClusterRoleBinding(capiSystemNamespace, autoscaler, scheme)
 
 	return &components.Component{
-		Name: "capi",
+		Name: "CAPI",
 		Subcomponents: components.SubcomponentList{
 			{Name: "namespace", Object: namespace, MutateFn: namespaceMutateFn},
 			{Name: "scc", Object: scc, MutateFn: sccMutateFn},

@@ -19,7 +19,7 @@ func NewComponent(namespace string, image string, autoscaler *capiv1alpha1.OCICl
 	clusterRoleBinding, clusterRoleBindingMutateFn := ClusterRoleBinding(namespace, autoscaler)
 
 	return &components.Component{
-		Name: "autoscaler",
+		Name: "Autoscaler",
 		Subcomponents: components.SubcomponentList{
 			{Name: "deployment", Object: deploy, MutateFn: deployMutateFn},
 			{Name: "serviceAccount", Object: serviceAccount, MutateFn: serviceAccountMutateFn},

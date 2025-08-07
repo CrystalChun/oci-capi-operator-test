@@ -25,7 +25,7 @@ func NewComponent(capiSystemNamespace string, image string, autoscaler *capiv1al
 	machineDeployment, machineDeploymentMutateFn := MachineDeployment(capiSystemNamespace, autoscaler)
 
 	return &components.Component{
-		Name: "enableautoscaler",
+		Name: "EnableAutoscaler",
 		Subcomponents: components.SubcomponentList{
 			{Name: "machineTemplate", Object: machineTemplate, MutateFn: machineTemplateMutateFn},
 			{Name: "machineDeployment", Object: machineDeployment, MutateFn: machineDeploymentMutateFn},
