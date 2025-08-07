@@ -19,6 +19,9 @@ import (
 
 // NewComponent returns a Component for the CAPOCI controller manager
 func NewComponent(capociNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) *components.Component {
+	namespace, namespaceMutateFn := Namespace(capociNamespace, autoscaler, scheme)
+	serviceAccount, serviceAccountMutateFn := ServiceAccount(capociNamespace, scheme, autoscaler)
+
 	deploy, deployMutateFn := CAPOCIDeployment(capociNamespace, scheme, autoscaler)
 	service, serviceMutateFn := WebhookService(capociNamespace, scheme, autoscaler)
 
@@ -30,6 +33,8 @@ func NewComponent(capociNamespace string, autoscaler *capiv1alpha1.OCIClusterAut
 	return &components.Component{
 		Name: "capoci",
 		Subcomponents: components.SubcomponentList{
+			{Name: "namespace", Object: namespace, MutateFn: namespaceMutateFn},
+			{Name: "serviceAccount", Object: serviceAccount, MutateFn: serviceAccountMutateFn},
 			{Name: "deployment", Object: deploy, MutateFn: deployMutateFn},
 			{Name: "service", Object: service, MutateFn: serviceMutateFn},
 			{Name: "mutatingWebhookConfiguration", Object: mutatingWebhookConfiguration, MutateFn: mutatingWebhookConfigurationMutateFn},
@@ -228,8 +233,7 @@ func CAPOCIDeployment(capociNamespace string, scheme *runtime.Scheme, instance *
 							Name: "cert",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName:  "capoci-webhook-service-cert",
-									DefaultMode: swag.Int32(420),
+									SecretName: "capoci-webhook-service-cert",
 								},
 							},
 						},
@@ -258,7 +262,7 @@ func Namespace(capociNamespace string, autoscaler *capiv1alpha1.OCIClusterAutosc
 	return namespace, mutateFn
 }
 
-func CAPOCIServiceAccount(capociNamespace string, scheme *runtime.Scheme, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+func ServiceAccount(capociNamespace string, scheme *runtime.Scheme, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "capoci-controller-manager",
@@ -304,6 +308,12 @@ func WebhookService(capociNamespace string, scheme *runtime.Scheme, instance *oc
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "capoci-webhook-service",
 			Namespace: capociNamespace,
+			Labels: map[string]string{
+				"cluster.x-k8s.io/provider": "infrastructure-oci",
+			},
+			Annotations: map[string]string{
+				"service.beta.openshift.io/serving-cert-secret-name": "capoci-webhook-service-cert",
+			},
 		},
 	}
 
