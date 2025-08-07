@@ -4,8 +4,6 @@ import (
 	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	"github.com/openshift/oci-capi-operator/internal/components"
 
-	securityv1 "github.com/openshift/api/security/v1"
-
 	"github.com/go-openapi/swag"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -21,12 +19,20 @@ import (
 // NewComponent returns a Component for the CAPI controller manager
 func NewComponent(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) *components.Component {
 	namespace, namespaceMutateFn := CAPINamespace(capiSystemNamespace, autoscaler, scheme)
+
 	scc, sccMutateFn := SecurityContextConstraints(capiSystemNamespace, scheme, autoscaler)
 	serviceAccount, serviceAccountMutateFn := ServiceAccount(capiSystemNamespace, autoscaler, scheme)
+
 	deploy, deployMutateFn := CAPIDeployment(capiSystemNamespace, autoscaler, scheme)
+
 	validatingWebhook, validatingWebhookMutateFn := ValidatingWebhookConfiguration(capiSystemNamespace, autoscaler, scheme)
 	mutatingWebhook, mutatingWebhookMutateFn := MutatingWebhookConfiguration(capiSystemNamespace, autoscaler, scheme)
 	admissionWebhookService, admissionWebhookServiceMutateFn := AdmissionWebhookService(capiSystemNamespace, autoscaler, scheme)
+
+	role, roleMutateFn := Role(capiSystemNamespace, autoscaler, scheme)
+	roleBinding, roleBindingMutateFn := RoleBinding(capiSystemNamespace, autoscaler, scheme)
+	clusterRole, clusterRoleMutateFn := ClusterRole(capiSystemNamespace, autoscaler, scheme)
+	clusterRoleBinding, clusterRoleBindingMutateFn := ClusterRoleBinding(capiSystemNamespace, autoscaler, scheme)
 
 	return &components.Component{
 		Name: "capi",
@@ -38,6 +44,10 @@ func NewComponent(capiSystemNamespace string, autoscaler *capiv1alpha1.OCICluste
 			{Name: "validatingWebhook", Object: validatingWebhook, MutateFn: validatingWebhookMutateFn},
 			{Name: "mutatingWebhook", Object: mutatingWebhook, MutateFn: mutatingWebhookMutateFn},
 			{Name: "admissionWebhookService", Object: admissionWebhookService, MutateFn: admissionWebhookServiceMutateFn},
+			{Name: "role", Object: role, MutateFn: roleMutateFn},
+			{Name: "roleBinding", Object: roleBinding, MutateFn: roleBindingMutateFn},
+			{Name: "clusterRole", Object: clusterRole, MutateFn: clusterRoleMutateFn},
+			{Name: "clusterRoleBinding", Object: clusterRoleBinding, MutateFn: clusterRoleBindingMutateFn},
 		},
 	}
 }
@@ -247,34 +257,7 @@ func CAPIDeployment(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClus
 	return deploy, mutateFn
 }
 
-// TODO: capi-validating-webhook-configuration
-
-// SecurityContextConstraints defines the SCC for the CAPI manager and CAPOCI controller manager
-func SecurityContextConstraints(capiSystemNamespace string, scheme *runtime.Scheme, autoscaler *capiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
-	scc := &securityv1.SecurityContextConstraints{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "oci-capi",
-		},
-	}
-
-	mutateFn := func() error {
-		scc.RunAsUser = securityv1.RunAsUserStrategyOptions{
-			Type: securityv1.RunAsUserStrategyRunAsAny,
-		}
-		scc.SELinuxContext = securityv1.SELinuxContextStrategyOptions{
-			Type: securityv1.SELinuxStrategyRunAsAny,
-		}
-		scc.SeccompProfiles = []string{"runtime/default"}
-		scc.Users = []string{
-			"system:serviceaccount:cluster-api-provider-oci-system:capoci-controller-manager",
-			"system:serviceaccount:capi-system:capi-manager",
-		}
-		return controllerutil.SetControllerReference(autoscaler, scc, scheme)
-	}
-
-	return scc, mutateFn
-}
-
+// TODO:
 func ValidatingWebhookConfiguration(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) (client.Object, func() error) {
 	webhook := &admissionregistrationv1.ValidatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
@@ -289,6 +272,7 @@ func ValidatingWebhookConfiguration(capiSystemNamespace string, autoscaler *capi
 	return webhook, mutateFn
 }
 
+// TODO:
 func MutatingWebhookConfiguration(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) (client.Object, func() error) {
 	webhook := &admissionregistrationv1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
@@ -303,6 +287,7 @@ func MutatingWebhookConfiguration(capiSystemNamespace string, autoscaler *capiv1
 	return webhook, mutateFn
 }
 
+// TODO:
 func AdmissionWebhookService(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) (client.Object, func() error) {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -315,19 +300,4 @@ func AdmissionWebhookService(capiSystemNamespace string, autoscaler *capiv1alpha
 	}
 
 	return service, mutateFn
-}
-
-func ServiceAccount(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) (client.Object, func() error) {
-	serviceAccount := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "capi-manager",
-			Namespace: capiSystemNamespace,
-		},
-	}
-
-	mutateFn := func() error {
-		return controllerutil.SetControllerReference(autoscaler, serviceAccount, scheme)
-	}
-
-	return serviceAccount, mutateFn
 }
