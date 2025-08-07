@@ -6,7 +6,6 @@ import (
 
 	"github.com/go-openapi/swag"
 
-	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -111,8 +110,7 @@ func CAPIDeployment(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClus
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "capi-manager",
-					//ServiceAccount:     "capi-manager",
-					DNSPolicy: corev1.DNSClusterFirst,
+					DNSPolicy:          corev1.DNSClusterFirst,
 					DNSConfig: &corev1.PodDNSConfig{
 						Options: []corev1.PodDNSConfigOption{
 							{Name: "ndots", Value: swag.String("1")},
@@ -238,7 +236,7 @@ func CAPIDeployment(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClus
 						},
 					},
 
-					Volumes: []corev1.Volume{
+					Volumes: []corev1.Volume{ //TODO: check if this is correct within openshift
 						{
 							Name: "cert",
 							VolumeSource: corev1.VolumeSource{
@@ -257,41 +255,30 @@ func CAPIDeployment(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClus
 	return deploy, mutateFn
 }
 
-// TODO:
-func ValidatingWebhookConfiguration(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) (client.Object, func() error) {
-	webhook := &admissionregistrationv1.ValidatingWebhookConfiguration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "capi-validating-webhook-configuration",
-		},
-	}
-
-	mutateFn := func() error {
-		return controllerutil.SetControllerReference(autoscaler, webhook, scheme)
-	}
-
-	return webhook, mutateFn
-}
-
-// TODO:
-func MutatingWebhookConfiguration(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) (client.Object, func() error) {
-	webhook := &admissionregistrationv1.MutatingWebhookConfiguration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "capi-mutating-webhook-configuration",
-		},
-	}
-
-	mutateFn := func() error {
-		return controllerutil.SetControllerReference(autoscaler, webhook, scheme)
-	}
-
-	return webhook, mutateFn
-}
-
-// TODO:
 func AdmissionWebhookService(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) (client.Object, func() error) {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "capi-webhook-service",
+			Name:      "capi-webhook-service",
+			Namespace: capiSystemNamespace,
+			Labels: map[string]string{
+				"cluster.x-k8s.io/provider": "cluster-api",
+			},
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: map[string]string{
+				"cluster.x-k8s.io/provider": "cluster-api",
+			},
+			Ports: []corev1.ServicePort{
+				{
+					Port: 443,
+					TargetPort: intstr.IntOrString{
+						StrVal: "webhook-server",
+					},
+					Protocol: corev1.ProtocolTCP,
+				},
+			},
+			Type:            corev1.ServiceTypeClusterIP,
+			SessionAffinity: corev1.ServiceAffinityNone,
 		},
 	}
 
