@@ -12,11 +12,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func NewComponent(capiSystemNamespace string, image string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) *components.Component {
-	deploy, deployMutateFn := AutoscalerDeployment(capiSystemNamespace, image, scheme, autoscaler)
-	serviceAccount, serviceAccountMutateFn := ServiceAccount(capiSystemNamespace, scheme, autoscaler)
-	clusterRole, clusterRoleMutateFn := ClusterRole(capiSystemNamespace, autoscaler)
-	clusterRoleBinding, clusterRoleBindingMutateFn := ClusterRoleBinding(capiSystemNamespace, autoscaler)
+func NewComponent(namespace string, image string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) *components.Component {
+	deploy, deployMutateFn := AutoscalerDeployment(namespace, image, scheme, autoscaler)
+	serviceAccount, serviceAccountMutateFn := ServiceAccount(namespace, scheme, autoscaler)
+	clusterRole, clusterRoleMutateFn := ClusterRole(autoscaler)
+	clusterRoleBinding, clusterRoleBindingMutateFn := ClusterRoleBinding(namespace, autoscaler)
 
 	return &components.Component{
 		Name: "autoscaler",
@@ -29,7 +29,7 @@ func NewComponent(capiSystemNamespace string, image string, autoscaler *capiv1al
 	}
 }
 
-func AutoscalerDeployment(capiSystemNamespace string, image string, scheme *runtime.Scheme, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+func AutoscalerDeployment(namespace string, image string, scheme *runtime.Scheme, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
 	deploy := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "oci-cluster-autoscaler",
