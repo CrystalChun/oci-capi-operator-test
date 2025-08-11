@@ -37,3 +37,16 @@ func GetDeploymentCondition(conditions []appsv1.DeploymentCondition, conditionTy
 	}
 	return nil
 }
+
+func SetDefaultLabels(obj client.Object, instanceName string) {
+	labels := map[string]string{
+		"cluster.x-k8s.io/provider":    "cluster-api",
+		"capi.openshift.io/managed-by": instanceName,
+	}
+	if objLabels := obj.GetLabels(); objLabels != nil {
+		for key, value := range objLabels {
+			labels[key] = value
+		}
+	}
+	obj.SetLabels(labels)
+}
