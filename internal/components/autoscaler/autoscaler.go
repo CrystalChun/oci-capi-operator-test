@@ -4,12 +4,12 @@ import (
 	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	ocicapiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	"github.com/openshift/oci-capi-operator/internal/components"
+	"github.com/openshift/oci-capi-operator/internal/utils"
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func NewComponent(namespace string, image string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) *components.Component {
@@ -38,8 +38,8 @@ func AutoscalerDeployment(namespace string, image string, scheme *runtime.Scheme
 	}
 
 	mutateFn := func() error {
-		// TODO: fill this in
-		return controllerutil.SetControllerReference(instance, deploy, scheme)
+		utils.SetDefaultLabels(deploy, instance.Name)
+		return nil
 	}
 
 	return deploy, mutateFn

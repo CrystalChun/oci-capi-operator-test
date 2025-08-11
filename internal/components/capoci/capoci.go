@@ -4,6 +4,7 @@ import (
 	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	ocicapiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	"github.com/openshift/oci-capi-operator/internal/components"
+	"github.com/openshift/oci-capi-operator/internal/utils"
 
 	"github.com/go-openapi/swag"
 
@@ -14,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // NewComponent returns a Component for the CAPOCI controller manager
@@ -59,6 +59,7 @@ func CAPOCIDeployment(capociNamespace string, scheme *runtime.Scheme, instance *
 	}
 
 	mutateFn := func() error {
+		utils.SetDefaultLabels(deploy, instance.Name)
 		deploy.Spec = appsv1.DeploymentSpec{
 			ProgressDeadlineSeconds: swag.Int32(600), //default is 600
 			Replicas:                swag.Int32(1),   //default is 1
@@ -242,7 +243,7 @@ func CAPOCIDeployment(capociNamespace string, scheme *runtime.Scheme, instance *
 			},
 		}
 
-		return controllerutil.SetControllerReference(instance, deploy, scheme)
+		return nil
 	}
 
 	return deploy, mutateFn
@@ -256,7 +257,8 @@ func Namespace(capociNamespace string, autoscaler *capiv1alpha1.OCIClusterAutosc
 	}
 
 	mutateFn := func() error {
-		return controllerutil.SetControllerReference(autoscaler, namespace, scheme)
+		utils.SetDefaultLabels(namespace, autoscaler.Name)
+		return nil
 	}
 
 	return namespace, mutateFn
@@ -271,7 +273,8 @@ func ServiceAccount(capociNamespace string, scheme *runtime.Scheme, instance *oc
 	}
 
 	mutateFn := func() error {
-		return controllerutil.SetControllerReference(instance, sa, scheme)
+		utils.SetDefaultLabels(sa, instance.Name)
+		return nil
 	}
 
 	return sa, mutateFn
@@ -289,6 +292,7 @@ func OCICredentialsSecret(namespace string, privateKey []byte, autoscaler *capiv
 	}
 
 	mutateFn := func() error {
+		utils.SetDefaultLabels(secret, autoscaler.Name)
 		secret.Type = corev1.SecretTypeOpaque
 		secret.Data = map[string][]byte{
 			"tenancy":     []byte(autoscaler.Spec.OCI.TenancyID),
@@ -297,7 +301,7 @@ func OCICredentialsSecret(namespace string, privateKey []byte, autoscaler *capiv
 			"fingerprint": []byte(autoscaler.Spec.OCI.Fingerprint),
 			"key":         privateKey,
 		}
-		return controllerutil.SetControllerReference(autoscaler, secret, scheme)
+		return nil
 	}
 
 	return secret, mutateFn
@@ -318,7 +322,8 @@ func WebhookService(capociNamespace string, scheme *runtime.Scheme, instance *oc
 	}
 
 	mutateFn := func() error {
-		return controllerutil.SetControllerReference(instance, service, scheme)
+		utils.SetDefaultLabels(service, instance.Name)
+		return nil
 	}
 
 	return service, mutateFn
@@ -333,7 +338,8 @@ func MutatingWebhookConfiguration(capociNamespace string, scheme *runtime.Scheme
 	}
 
 	mutateFn := func() error {
-		return controllerutil.SetControllerReference(instance, mutatingWebhookConfiguration, scheme)
+		utils.SetDefaultLabels(mutatingWebhookConfiguration, instance.Name)
+		return nil
 	}
 
 	return mutatingWebhookConfiguration, mutateFn
@@ -348,7 +354,8 @@ func ValidatingWebhookConfiguration(capociNamespace string, scheme *runtime.Sche
 	}
 
 	mutateFn := func() error {
-		return controllerutil.SetControllerReference(instance, validatingWebhookConfiguration, scheme)
+		utils.SetDefaultLabels(validatingWebhookConfiguration, instance.Name)
+		return nil
 	}
 
 	return validatingWebhookConfiguration, mutateFn

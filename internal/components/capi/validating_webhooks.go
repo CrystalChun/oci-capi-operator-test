@@ -6,7 +6,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	"github.com/openshift/oci-capi-operator/internal/utils"
 )
 
 // ValidatingWebhookConfiguration creates the ValidatingWebhookConfiguration for CAPI
@@ -26,7 +27,8 @@ func ValidatingWebhookConfiguration(capiSystemNamespace string, autoscaler *capi
 	}
 
 	mutateFn := func() error {
-		return controllerutil.SetControllerReference(autoscaler, webhook, scheme)
+		utils.SetDefaultLabels(webhook, autoscaler.Name)
+		return nil
 	}
 
 	return webhook, mutateFn

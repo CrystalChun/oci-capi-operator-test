@@ -1,10 +1,11 @@
 package capi
 
 import (
+	"github.com/go-openapi/swag"
+
 	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	"github.com/openshift/oci-capi-operator/internal/components"
-
-	"github.com/go-openapi/swag"
+	"github.com/openshift/oci-capi-operator/internal/utils"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -12,13 +13,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // NewComponent returns a Component for the CAPI controller manager
 func NewComponent(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) *components.Component {
 	namespace, namespaceMutateFn := CAPINamespace(capiSystemNamespace, autoscaler, scheme)
-	//caBundleConfigMap, caBundleConfigMapMutateFn := CABundleConfigMap(capiSystemNamespace, autoscaler, scheme)
+	caBundleConfigMap, caBundleConfigMapMutateFn := CABundleConfigMap(capiSystemNamespace, autoscaler, scheme)
 
 	scc, sccMutateFn := SecurityContextConstraints(capiSystemNamespace, scheme, autoscaler)
 	serviceAccount, serviceAccountMutateFn := ServiceAccount(capiSystemNamespace, autoscaler, scheme)
@@ -38,6 +38,7 @@ func NewComponent(capiSystemNamespace string, autoscaler *capiv1alpha1.OCICluste
 		Name: "CAPI",
 		Subcomponents: components.SubcomponentList{
 			{Name: "namespace", Object: namespace, MutateFn: namespaceMutateFn},
+			{Name: "caBundleConfigMap", Object: caBundleConfigMap, MutateFn: caBundleConfigMapMutateFn},
 			{Name: "scc", Object: scc, MutateFn: sccMutateFn},
 			{Name: "serviceAccount", Object: serviceAccount, MutateFn: serviceAccountMutateFn},
 			{Name: "deployment", Object: deploy, MutateFn: deployMutateFn},
@@ -56,10 +57,14 @@ func CAPINamespace(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClust
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: capiSystemNamespace,
+			Labels: map[string]string{
+				"cluster.x-k8s.io/provider": "cluster-api",
+			},
 		},
 	}
 	mutateFn := func() error {
-		return controllerutil.SetControllerReference(autoscaler, namespace, scheme)
+		utils.SetDefaultLabels(namespace, autoscaler.Name)
+		return nil
 	}
 	return namespace, mutateFn
 }
@@ -79,6 +84,7 @@ func CAPIDeployment(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClus
 		},
 	}
 	mutateFn := func() error {
+		utils.SetDefaultLabels(deploy, autoscaler.Name)
 		deploy.Spec = appsv1.DeploymentSpec{
 			RevisionHistoryLimit:    swag.Int32(10),
 			ProgressDeadlineSeconds: swag.Int32(600),
@@ -185,7 +191,7 @@ func CAPIDeployment(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClus
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   "/healthz",
-										Port:   intstr.IntOrString{StrVal: "healthz"},
+										Port:   intstr.IntOrString{IntVal: 9440},
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},
@@ -198,7 +204,7 @@ func CAPIDeployment(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClus
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   "/healthz",
-										Port:   intstr.IntOrString{StrVal: "healthz"},
+										Port:   intstr.IntOrString{IntVal: 9440},
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},
@@ -250,7 +256,7 @@ func CAPIDeployment(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClus
 				},
 			},
 		}
-		return controllerutil.SetControllerReference(autoscaler, deploy, scheme)
+		return nil
 	}
 	return deploy, mutateFn
 }
@@ -275,7 +281,7 @@ func AdmissionWebhookService(capiSystemNamespace string, autoscaler *capiv1alpha
 				{
 					Port: 443,
 					TargetPort: intstr.IntOrString{
-						StrVal: "webhook-server",
+						IntVal: 9443,
 					},
 					Protocol: corev1.ProtocolTCP,
 				},
@@ -286,8 +292,26 @@ func AdmissionWebhookService(capiSystemNamespace string, autoscaler *capiv1alpha
 	}
 
 	mutateFn := func() error {
-		return controllerutil.SetControllerReference(autoscaler, service, scheme)
+		utils.SetDefaultLabels(service, autoscaler.Name)
+		return nil
 	}
 
 	return service, mutateFn
+}
+
+func CABundleConfigMap(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) (client.Object, func() error) {
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "capi-webhook-service-cert",
+			Namespace: capiSystemNamespace,
+			Annotations: map[string]string{
+				"service.beta.openshift.io/inject-cabundle": "true",
+			},
+		},
+	}
+	mutateFn := func() error {
+		utils.SetDefaultLabels(configMap, autoscaler.Name)
+		return nil
+	}
+	return configMap, mutateFn
 }

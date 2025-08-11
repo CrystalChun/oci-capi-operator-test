@@ -7,7 +7,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	"github.com/openshift/oci-capi-operator/internal/utils"
 )
 
 func Role(capociNamespace string, scheme *runtime.Scheme, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
@@ -36,7 +37,8 @@ func Role(capociNamespace string, scheme *runtime.Scheme, instance *ocicapiv1alp
 	}
 
 	mutateFn := func() error {
-		return controllerutil.SetControllerReference(instance, role, scheme)
+		utils.SetDefaultLabels(role, instance.Name)
+		return nil
 	}
 
 	return role, mutateFn
@@ -63,7 +65,8 @@ func RoleBinding(capociNamespace string, scheme *runtime.Scheme, instance *ocica
 	}
 
 	mutateFn := func() error {
-		return controllerutil.SetControllerReference(instance, roleBinding, scheme)
+		utils.SetDefaultLabels(roleBinding, instance.Name)
+		return nil
 	}
 
 	return roleBinding, mutateFn
