@@ -63,7 +63,7 @@ func init() {
 	utilruntime.Must(ocicapioperatorv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(infrastructurev1beta2.AddToScheme(scheme))
 	utilruntime.Must(capiv1beta1.AddToScheme(scheme))
-	utilruntime.Must(securityv1.AddToScheme(scheme))
+	utilruntime.Must(securityv1.Install(scheme))
 
 	// +kubebuilder:scaffold:scheme
 }
