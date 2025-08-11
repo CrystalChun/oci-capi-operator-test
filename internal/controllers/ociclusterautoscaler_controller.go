@@ -77,6 +77,8 @@ type OCIClusterAutoscalerReconciler struct {
 // +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=validatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=mutatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -113,6 +115,7 @@ func (r *OCIClusterAutoscalerReconciler) Reconcile(ctx context.Context, req ctrl
 		if controllerutil.ContainsFinalizer(instance, FinalizerName) {
 			// Perform cleanup
 			if err := r.cleanup(ctx, instance); err != nil {
+				logger.Error(err, "Failed to cleanup")
 				return ctrl.Result{}, err
 			}
 			controllerutil.RemoveFinalizer(instance, FinalizerName)
@@ -168,37 +171,37 @@ func (r *OCIClusterAutoscalerReconciler) reconcileOCICapiStack(ctx context.Conte
 	capiComponent := capi.NewComponent(CAPISystemNamespace, instance, r.Scheme)
 	err := r.reconcileComponent(ctx, capiComponent)
 	if err != nil {
-		logger.Error(err, "Failed to reconcile CAPI components")
-		return ctrl.Result{RequeueAfter: time.Minute * 2}, err
+		logger.Info("Failed to reconcile CAPI components", "error", err)
+		return ctrl.Result{RequeueAfter: time.Second * 20}, nil
 	}
 
 	// Step 2: Reconcile CAPOCI components
 	capociComponent := capoci.NewComponent(CAPOCISystemNamespace, instance, r.Scheme)
 	err = r.reconcileComponent(ctx, capociComponent)
 	if err != nil {
-		logger.Error(err, "Failed to reconcile CAPOCI components")
-		return ctrl.Result{RequeueAfter: time.Minute * 2}, err
+		logger.Info("Failed to reconcile CAPOCI components", "error", err)
+		return ctrl.Result{RequeueAfter: time.Second * 20}, nil
 	}
 
 	// Step 3: Check if CAPI is already deployed
 	capiInstalled, err := r.checkCAPIInstallation(ctx)
 	if err != nil {
-		logger.Error(err, "Failed to check CAPI installation")
-		return ctrl.Result{RequeueAfter: time.Minute * 5}, err
+		logger.Info("Failed to check CAPI installation", "error", err)
+		return ctrl.Result{RequeueAfter: time.Second * 20}, nil
 	}
 	instance.Status.CAPIInstalled = capiInstalled
 
 	if !capiInstalled {
-		logger.Info("CAPI is not installed, waiting...")
-		return ctrl.Result{RequeueAfter: time.Minute * 2}, nil
+		logger.Info("CAPI is not installed, requeuing...")
+		return ctrl.Result{RequeueAfter: time.Second * 20}, nil
 	}
 
 	// Step 4: Reconcile Cluster Autoscaler components
 	autoscalerComponent := autoscaler.NewComponent(CAPISystemNamespace, ClusterAutoscalerImage, instance, r.Scheme)
 	err = r.reconcileComponent(ctx, autoscalerComponent)
 	if err != nil {
-		logger.Error(err, "Failed to reconcile Cluster Autoscaler components")
-		return ctrl.Result{RequeueAfter: time.Minute * 2}, err
+		logger.Info("Failed to reconcile Cluster Autoscaler components", "error", err)
+		return ctrl.Result{RequeueAfter: time.Second * 20}, nil
 	}
 
 	instance.Status.ClusterAutoscalerDeployed = true
@@ -208,6 +211,29 @@ func (r *OCIClusterAutoscalerReconciler) reconcileOCICapiStack(ctx context.Conte
 func (r *OCIClusterAutoscalerReconciler) cleanup(ctx context.Context, instance *capiv1alpha1.OCIClusterAutoscaler) error {
 	// Cleanup resources created by the operator
 	// This would include removing deployments, RBAC, secrets, etc.
+	// Step 4: Reconcile Cluster Autoscaler components
+	autoscalerComponent := autoscaler.NewComponent(CAPISystemNamespace, ClusterAutoscalerImage, instance, r.Scheme)
+	err := r.removeComponent(ctx, autoscalerComponent)
+	if err != nil {
+
+		return err
+	}
+	// Step 2: Reconcile CAPOCI components
+	capociComponent := capoci.NewComponent(CAPOCISystemNamespace, instance, r.Scheme)
+	err = r.removeComponent(ctx, capociComponent)
+	if err != nil {
+
+		return err
+	}
+
+	// Step 1: Reconcile CAPI components
+	capiComponent := capi.NewComponent(CAPISystemNamespace, instance, r.Scheme)
+	err = r.removeComponent(ctx, capiComponent)
+	if err != nil {
+
+		return err
+	}
+
 	return nil
 }
 
@@ -240,7 +266,12 @@ func (r *OCIClusterAutoscalerReconciler) reconcileComponent(ctx context.Context,
 		logger.Info("Reconciling subcomponent", "subcomponent", subcomponent.Name)
 		obj := subcomponent.Object
 		mutateFn := subcomponent.MutateFn
-		controllerutil.CreateOrUpdate(ctx, r.Client, obj, mutateFn)
+		res, err := controllerutil.CreateOrUpdate(ctx, r.Client, obj, mutateFn)
+		if err != nil {
+			logger.Error(err, "Failed to reconcile subcomponent", "subcomponent", subcomponent.Name)
+			return err
+		}
+		logger.Info("Reconciled subcomponent", "subcomponent", subcomponent.Name, "result", res)
 	}
 	return nil
 }
@@ -261,6 +292,23 @@ func validateAutoscalerSpec(spec *capiv1alpha1.OCIClusterAutoscalerSpec) error {
 		return fmt.Errorf("shape is required")
 	}
 
+	return nil
+}
+
+func (r *OCIClusterAutoscalerReconciler) removeComponent(ctx context.Context, component *components.Component) error {
+	logger := log.FromContext(ctx)
+	logger.Info("Removing component", "component", component.GetName())
+
+	for _, subcomponent := range component.GetSubcomponents() {
+		logger.Info("Removing subcomponent", "subcomponent", subcomponent.Name)
+		obj := subcomponent.Object
+		err := r.Client.Delete(ctx, obj)
+		if err != nil && !errors.IsNotFound(err) {
+			logger.Error(err, "Failed to remove subcomponent", "subcomponent", subcomponent.Name)
+			return err
+		}
+		logger.Info("Removed subcomponent", "subcomponent", subcomponent.Name)
+	}
 	return nil
 }
 
