@@ -10,7 +10,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	"github.com/openshift/oci-capi-operator/internal/utils"
 )
 
 // SecurityContextConstraints defines the SCC for the CAPI manager and CAPOCI controller manager
@@ -33,7 +34,8 @@ func SecurityContextConstraints(capiSystemNamespace string, scheme *runtime.Sche
 			"system:serviceaccount:cluster-api-provider-oci-system:capoci-controller-manager",
 			"system:serviceaccount:capi-system:capi-manager",
 		}
-		return controllerutil.SetControllerReference(autoscaler, scc, scheme)
+		utils.SetDefaultLabels(scc, autoscaler.Name)
+		return nil
 	}
 
 	return scc, mutateFn
@@ -48,7 +50,8 @@ func ServiceAccount(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClus
 	}
 
 	mutateFn := func() error {
-		return controllerutil.SetControllerReference(autoscaler, serviceAccount, scheme)
+		utils.SetDefaultLabels(serviceAccount, autoscaler.Name)
+		return nil
 	}
 
 	return serviceAccount, mutateFn
@@ -75,7 +78,8 @@ func Role(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClusterAutosca
 	}
 
 	mutateFn := func() error {
-		return controllerutil.SetControllerReference(autoscaler, role, scheme)
+		utils.SetDefaultLabels(role, autoscaler.Name)
+		return nil
 	}
 
 	return role, mutateFn
@@ -102,7 +106,8 @@ func RoleBinding(capiSystemNamespace string, autoscaler *capiv1alpha1.OCICluster
 	}
 
 	mutateFn := func() error {
-		return controllerutil.SetControllerReference(autoscaler, roleBinding, scheme)
+		utils.SetDefaultLabels(roleBinding, autoscaler.Name)
+		return nil
 	}
 
 	return roleBinding, mutateFn
@@ -111,7 +116,7 @@ func RoleBinding(capiSystemNamespace string, autoscaler *capiv1alpha1.OCICluster
 func ClusterRole(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) (client.Object, func() error) {
 	clusterRole := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "capi-aggregated-manager-role",
+			Name: "capi-manager-role",
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -236,7 +241,8 @@ func ClusterRole(capiSystemNamespace string, autoscaler *capiv1alpha1.OCICluster
 	}
 
 	mutateFn := func() error {
-		return controllerutil.SetControllerReference(autoscaler, clusterRole, scheme)
+		utils.SetDefaultLabels(clusterRole, autoscaler.Name)
+		return nil
 	}
 
 	return clusterRole, mutateFn
@@ -245,12 +251,12 @@ func ClusterRole(capiSystemNamespace string, autoscaler *capiv1alpha1.OCICluster
 func ClusterRoleBinding(capiSystemNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) (client.Object, func() error) {
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "capi-aggregated-manager-rolebinding",
+			Name: "capi-manager-rolebinding",
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
 			Kind:     "ClusterRole",
-			Name:     "capi-aggregated-manager-role",
+			Name:     "capi-manager-role",
 		},
 		Subjects: []rbacv1.Subject{
 			{
@@ -262,7 +268,8 @@ func ClusterRoleBinding(capiSystemNamespace string, autoscaler *capiv1alpha1.OCI
 	}
 
 	mutateFn := func() error {
-		return controllerutil.SetControllerReference(autoscaler, clusterRoleBinding, scheme)
+		utils.SetDefaultLabels(clusterRoleBinding, autoscaler.Name)
+		return nil
 	}
 
 	return clusterRoleBinding, mutateFn

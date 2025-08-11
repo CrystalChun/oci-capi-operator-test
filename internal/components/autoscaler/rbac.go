@@ -8,7 +8,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	"github.com/openshift/oci-capi-operator/internal/utils"
 )
 
 func ServiceAccount(namespace string, scheme *runtime.Scheme, instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
@@ -20,7 +21,8 @@ func ServiceAccount(namespace string, scheme *runtime.Scheme, instance *ocicapiv
 	}
 
 	mutateFn := func() error {
-		return controllerutil.SetControllerReference(instance, serviceAccount, scheme)
+		utils.SetDefaultLabels(serviceAccount, instance.Name)
+		return nil
 	}
 
 	return serviceAccount, mutateFn
@@ -41,6 +43,7 @@ func ClusterRole(instance *ocicapiv1alpha1.OCIClusterAutoscaler) (client.Object,
 				Verbs:     []string{"get", "list", "watch", "update"},
 			},
 		}
+		utils.SetDefaultLabels(clusterRole, instance.Name)
 		return nil
 	}
 
@@ -67,6 +70,7 @@ func ClusterRoleBinding(namespace string, instance *ocicapiv1alpha1.OCIClusterAu
 				Namespace: namespace,
 			},
 		}
+		utils.SetDefaultLabels(clusterRoleBinding, instance.Name)
 		return nil
 	}
 

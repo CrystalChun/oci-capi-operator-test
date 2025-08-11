@@ -5,6 +5,7 @@ import (
 
 	ocicapioperatorv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	"github.com/openshift/oci-capi-operator/internal/components"
+	"github.com/openshift/oci-capi-operator/internal/utils"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/go-openapi/swag"
@@ -39,13 +40,11 @@ func OCICluster(capiSystemNamespace string, instance *ocicapioperatorv1alpha1.OC
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
 			Namespace: capiSystemNamespace,
-			Labels: map[string]string{
-				"cluster.x-k8s.io/cluster-name": instance.Name,
-			},
 		},
 	}
 
 	mutateFn := func() error {
+		utils.SetDefaultLabels(ociCluster, instance.Name)
 		ociCluster.Spec = infrastructurev1beta2.OCIClusterSpec{
 			CompartmentId: instance.Spec.OCI.CompartmentID,
 			NetworkSpec: infrastructurev1beta2.NetworkSpec{
@@ -82,13 +81,11 @@ func CAPICluster(capiSystemNamespace string, instance *ocicapioperatorv1alpha1.O
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
 			Namespace: capiSystemNamespace,
-			Labels: map[string]string{
-				"cluster.x-k8s.io/cluster-name": instance.Name,
-			},
 		},
 	}
 
 	mutateFn := func() error {
+		utils.SetDefaultLabels(cluster, instance.Name)
 		cluster.Spec = capiv1beta1.ClusterSpec{
 			ClusterNetwork: &capiv1beta1.ClusterNetwork{
 				Pods: &capiv1beta1.NetworkRanges{
@@ -155,6 +152,7 @@ func MachineDeployment(capiSystemNamespace string, instance *ocicapioperatorv1al
 	}
 
 	mutateFn := func() error {
+		utils.SetDefaultLabels(machineDeployment, instance.Name)
 		machineDeployment.Spec = capiv1beta1.MachineDeploymentSpec{
 			ClusterName: instance.Name,
 			Template: capiv1beta1.MachineTemplateSpec{
