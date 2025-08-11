@@ -26,12 +26,12 @@ spec:
       apiServerLoadBalancerId: "ocid1.loadbalancer.oc1.us-sanjose-1.example"
       controlPlaneEndpoint: "192.168.1.100"
   autoscaling:
-    minSize: 0
-    maxSize: 10
+    minNodes: 0
+    maxNodes: 4
     shape: "VM.Standard.E4.Flex"
     shapeConfig:
-      cpus: "4"
-      memoryInGBs: "16"
+      cpus: 4
+      memory: 16
   capi:
     namespace: "capi-system"
     clusterName: "my-openshift-cluster"
