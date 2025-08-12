@@ -17,8 +17,8 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"crypto/tls"
-	"flag"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -39,8 +39,11 @@ import (
 
 	securityv1 "github.com/openshift/api/security/v1"
 
+	"github.com/go-logr/logr"
 	ocicapioperatorv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	infrastructurev1beta2 "github.com/oracle/cluster-api-provider-oci/api/v1beta2"
+	"github.com/spf13/cobra"
+	"go.uber.org/zap/zapcore"
 	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	"github.com/openshift/oci-capi-operator/internal/controllers"
@@ -69,29 +72,34 @@ func init() {
 }
 
 func main() {
-	var metricsAddr string
-	var enableLeaderElection bool
-	var probeAddr string
-	var secureMetrics bool
-	var enableHTTP2 bool
-	var tlsOpts []func(*tls.Config)
-	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
-		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
-		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
-	flag.BoolVar(&secureMetrics, "metrics-secure", true,
-		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
-	flag.BoolVar(&enableHTTP2, "enable-http2", false,
-		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
-	opts := zap.Options{
-		Development: true,
+	ctrl.SetLogger(zap.New(zap.JSONEncoder(func(o *zapcore.EncoderConfig) {
+		o.EncodeTime = zapcore.RFC3339TimeEncoder
+	})))
+	cmd := &cobra.Command{
+		Use: "oci-capi-operator",
+		Run: func(cmd *cobra.Command, args []string) {
+			_ = cmd.Help()
+			os.Exit(1)
+		},
 	}
-	opts.BindFlags(flag.CommandLine)
-	flag.Parse()
+	cmd.AddCommand(NewInitCommand())
+	cmd.AddCommand(NewRunCommand())
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	if err := cmd.Execute(); err != nil {
+		setupLog.Error(err, "problem running operator")
+		os.Exit(1)
+	}
+}
+
+type RunOptions struct {
+	MetricsAddr          string
+	EnableLeaderElection bool
+	ProbeAddr            string
+	SecureMetrics        bool
+	EnableHTTP2          bool
+}
+
+func run(ctx context.Context, options RunOptions, setupLog *logr.Logger) error {
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
@@ -104,7 +112,8 @@ func main() {
 		c.NextProtos = []string{"http/1.1"}
 	}
 
-	if !enableHTTP2 {
+	tlsOpts := []func(*tls.Config){}
+	if !options.EnableHTTP2 {
 		tlsOpts = append(tlsOpts, disableHTTP2)
 	}
 
@@ -119,18 +128,18 @@ func main() {
 	metricsOpts := ctrl.Options{
 		Scheme:                 scheme,
 		WebhookServer:          webhookServer,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
+		HealthProbeBindAddress: options.ProbeAddr,
+		LeaderElection:         options.EnableLeaderElection,
 		LeaderElectionID:       "1af242a3.openshift.io",
 	}
-	if metricsAddr != "0" {
-		metricsOpts.HealthProbeBindAddress = metricsAddr
+	if options.MetricsAddr != "0" {
+		metricsOpts.HealthProbeBindAddress = options.MetricsAddr
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), metricsOpts)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
+		return err
 	}
 
 	if err = (&controllers.OCIClusterAutoscalerReconciler{
@@ -138,7 +147,7 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "OCIClusterAutoscaler")
-		os.Exit(1)
+		return err
 	}
 
 	if err = (&controllers.CertificateApprovalReconciler{
@@ -146,22 +155,54 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CertificateApproval")
-		os.Exit(1)
+		return err
 	}
 	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
-		os.Exit(1)
+		return err
 	}
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up ready check")
-		os.Exit(1)
+		return err
 	}
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
-		os.Exit(1)
+		return err
 	}
+	return nil
+}
+
+func NewRunCommand() *cobra.Command {
+	runCmd := &cobra.Command{
+		Use:   "run",
+		Short: "Runs the OCI CAPI operator",
+	}
+
+	options := RunOptions{}
+
+	runCmd.Flags().StringVar(&options.MetricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
+		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
+	runCmd.Flags().StringVar(&options.ProbeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	runCmd.Flags().BoolVar(&options.EnableLeaderElection, "leader-elect", false,
+		"Enable leader election for controller manager. "+
+			"Enabling this will ensure there is only one active controller manager.")
+	runCmd.Flags().BoolVar(&options.SecureMetrics, "metrics-secure", true,
+		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
+	runCmd.Flags().BoolVar(&options.EnableHTTP2, "enable-http2", false,
+		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
+
+	runCmd.Run = func(cmd *cobra.Command, args []string) {
+		ctx, cancel := context.WithCancel(cmd.Context())
+		defer cancel()
+		setupLog = ctrl.Log.WithName("setup")
+		if err := run(ctx, options, &setupLog); err != nil {
+			setupLog.Error(err, "problem running operator")
+			os.Exit(1)
+		}
+	}
+	return runCmd
 }
