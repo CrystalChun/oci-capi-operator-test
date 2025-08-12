@@ -7,6 +7,9 @@ const (
 	CAPISystemNamespace   = "capi-system"
 	CAPOCISystemNamespace = "cluster-api-provider-oci-system"
 
+	CAPIWebhookServiceName   = "capi-webhook-service"
+	CAPOCIWebhookServiceName = "capoci-webhook-service"
+
 	// Default Images
 	ClusterAutoscalerImage = "registry.k8s.io/autoscaling/cluster-autoscaler:v1.29.0"
 )
