@@ -15,7 +15,7 @@ const (
 )
 
 func GetCRDs(ctx context.Context, provider string, providerType v1alpha3.ProviderType) ([]unstructured.Unstructured, error) {
-	components, err := utils.GenerateCAPIComponents(ctx, provider, providerType)
+	components, err := utils.GenerateCAPIComponents(ctx, provider, providerType, "")
 	if err != nil {
 		return nil, fmt.Errorf("error generating CAPI components: %w", err)
 	}
