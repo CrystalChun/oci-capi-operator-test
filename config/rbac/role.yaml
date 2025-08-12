@@ -238,6 +238,7 @@ rules:
   resources:
   - clusterrolebindings
   - clusterroles
+  - clusterroles/aggregation
   - rolebindings
   - roles
   verbs:
