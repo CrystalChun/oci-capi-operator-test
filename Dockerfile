@@ -30,6 +30,7 @@ COPY clusterctl.yaml clusterctl.yaml
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY --from=builder /workspace/manager .
+# The following is needed for clusterctl to generate component configs during runtime
 COPY --from=builder --chown=65532:65532 /workspace/clusterctl.yaml /.config/clusterctl.yaml
 USER 65532:65532
 
