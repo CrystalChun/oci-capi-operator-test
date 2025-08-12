@@ -22,22 +22,19 @@ func NewComponent(ctx context.Context, capociNamespace string, autoscaler *capiv
 	}
 	reconcileComponents := []unstructured.Unstructured{}
 	for _, component := range components {
+		utils.SetControllerLabels(&component, autoscaler.Name)
 		switch component.GetKind() {
 		case "Service":
 			utils.SetOpenshiftServiceCertAnnotation(&component, webhookServiceName)
-			utils.SetControllerLabels(&component, autoscaler.Name)
 			reconcileComponents = append(reconcileComponents, component)
 		case "ValidatingWebhookConfiguration", "MutatingWebhookConfiguration":
 			utils.SetOpenshiftCABundleAnnotation(&component)
-			utils.SetControllerLabels(&component, autoscaler.Name)
 			reconcileComponents = append(reconcileComponents, component)
 		case "Deployment":
 			utils.EditDeploymentCerts(scheme, &component, webhookServiceName)
-			utils.SetControllerLabels(&component, autoscaler.Name)
 			reconcileComponents = append(reconcileComponents, component)
 		case "Certificate", "Issuer", "Namespace", "Secret", "CustomResourceDefinition": // skip these
 		default:
-			utils.SetControllerLabels(&component, autoscaler.Name)
 			reconcileComponents = append(reconcileComponents, component)
 		}
 	}
