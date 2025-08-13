@@ -24,6 +24,8 @@ import (
 	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	"github.com/openshift/oci-capi-operator/internal/components/capi"
 	"github.com/openshift/oci-capi-operator/internal/components/capoci"
+	enableautoscaler "github.com/openshift/oci-capi-operator/internal/components/enable_autoscaler"
+
 	"github.com/openshift/oci-capi-operator/internal/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
@@ -50,6 +52,7 @@ type OCIClusterAutoscalerReconciler struct {
 	client.Client
 	Scheme            *runtime.Scheme
 	CAPOCICredentials capoci.CAPOCICredentials
+	AutoScalingConfig enableautoscaler.AutoScalingConfig
 }
 
 // +kubebuilder:rbac:groups=capi.openshift.io,resources=ociclusterautoscalers,verbs=get;list;watch;create;update;patch;delete
@@ -93,6 +96,7 @@ type OCIClusterAutoscalerReconciler struct {
 // +kubebuilder:rbac:groups=runtime.cluster.x-k8s.io,resources=extensionconfigs;extensionconfigs/status,verbs=get;list;patch;update;watch
 // +kubebuilder:rbac:groups=certificates.k8s.io,resources=certificatesigningrequests,verbs=get;list;update;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=ocimachines,verbs=get;list;watch
+// +kubebuilder:rbac:groups=config.openshift.io,resources=infrastructures,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

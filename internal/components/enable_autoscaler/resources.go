@@ -1,6 +1,7 @@
 package enableautoscaler
 
 import (
+	"context"
 	"fmt"
 
 	ocicapioperatorv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
@@ -18,11 +19,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func NewComponent(capiSystemNamespace string, image string, autoscaler *ocicapioperatorv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) *components.Component {
+type AutoScalingConfig struct {
+	CPUs     int32  `envconfig:"CPUs" default:"2"`
+	Memory   int32  `envconfig:"MEMORY" default:"4"`
+	MinNodes int32  `envconfig:"MIN_NODES" default:"1"`
+	MaxNodes int32  `envconfig:"MAX_NODES" default:"3"`
+	Shape    string `envconfig:"SHAPE" default:"oc3"`
+}
+
+func NewComponent(capiSystemNamespace string, image string, autoscaler *ocicapioperatorv1alpha1.OCIClusterAutoscaler, autoscalerConfig AutoScalingConfig, scheme *runtime.Scheme) *components.Component {
 	ociCluster, ociClusterMutateFn := OCICluster(capiSystemNamespace, autoscaler)
 	cluster, clusterMutateFn := CAPICluster(capiSystemNamespace, autoscaler)
 	machineTemplate, machineTemplateMutateFn := OCIMachineTemplate(capiSystemNamespace, autoscaler)
-	machineDeployment, machineDeploymentMutateFn := MachineDeployment(capiSystemNamespace, autoscaler)
+	machineDeployment, machineDeploymentMutateFn := MachineDeployment(capiSystemNamespace, autoscaler, autoscalerConfig)
 
 	return &components.Component{
 		Name: "EnableAutoscaler",
@@ -137,22 +146,52 @@ func OCIMachineTemplate(capiSystemNamespace string, instance *ocicapioperatorv1a
 	return machineTemplate, mutateFn
 }
 
-func MachineDeployment(capiSystemNamespace string, instance *ocicapioperatorv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+func MachineDeployment(capiSystemNamespace string, instance *ocicapioperatorv1alpha1.OCIClusterAutoscaler, autoscalerConfig AutoScalingConfig) (client.Object, func() error) {
+	cpu := autoscalerConfig.CPUs
+	memory := autoscalerConfig.Memory
+	minNodes := autoscalerConfig.MinNodes
+	maxNodes := autoscalerConfig.MaxNodes
+	if instance.Spec.Autoscaling.ShapeConfig.CPUs != 0 {
+		cpu = instance.Spec.Autoscaling.ShapeConfig.CPUs
+	}
+	if instance.Spec.Autoscaling.ShapeConfig.Memory != 0 {
+		memory = instance.Spec.Autoscaling.ShapeConfig.Memory
+	}
+	if instance.Spec.Autoscaling.MinNodes != 0 {
+		minNodes = instance.Spec.Autoscaling.MinNodes
+	}
+	if instance.Spec.Autoscaling.MaxNodes != 0 {
+		maxNodes = instance.Spec.Autoscaling.MaxNodes
+	}
+
+	// ensure that min nodes is less than max nodes
+	if minNodes > maxNodes {
+		return nil, func() error {
+			return fmt.Errorf("min nodes must be less than max nodes")
+		}
+	}
+
 	machineDeployment := &capiv1beta1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
 			Namespace: capiSystemNamespace,
-			Annotations: map[string]string{
-				"capacity.cluster-autoscaler.kubernetes.io/cpu":               fmt.Sprintf("%d", instance.Spec.Autoscaling.ShapeConfig.CPUs),
-				"capacity.cluster-autoscaler.kubernetes.io/memory":            fmt.Sprintf("%dG", instance.Spec.Autoscaling.ShapeConfig.Memory),
-				"cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size": fmt.Sprintf("%d", instance.Spec.Autoscaling.MinNodes),
-				"cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size": fmt.Sprintf("%d", instance.Spec.Autoscaling.MaxNodes),
-			},
 		},
 	}
 
 	mutateFn := func() error {
 		utils.SetDefaultLabels(machineDeployment, instance.Name)
+		annotations := map[string]string{
+			"capacity.cluster-autoscaler.kubernetes.io/cpu":               fmt.Sprintf("%d", cpu),
+			"capacity.cluster-autoscaler.kubernetes.io/memory":            fmt.Sprintf("%dG", memory),
+			"cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size": fmt.Sprintf("%d", minNodes),
+			"cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size": fmt.Sprintf("%d", maxNodes),
+		}
+		if machineDeployment.Annotations != nil {
+			for key, value := range machineDeployment.Annotations {
+				annotations[key] = value
+			}
+		}
+		machineDeployment.Annotations = annotations
 		machineDeployment.Spec = capiv1beta1.MachineDeploymentSpec{
 			ClusterName: instance.Name,
 			Template: capiv1beta1.MachineTemplateSpec{
@@ -174,4 +213,46 @@ func MachineDeployment(capiSystemNamespace string, instance *ocicapioperatorv1al
 	}
 
 	return machineDeployment, mutateFn
+}
+
+// BootstrapConfigSecret is a secret that contains the bootstrap config for additional nodes that are added to the cluster.
+
+func BootstrapConfigSecret(ctx context.Context, client client.Client, capiSystemNamespace string, clusterName string, instance *ocicapioperatorv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+	bootstrapConfigSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-bootstrap", clusterName),
+			Namespace: capiSystemNamespace,
+		},
+	}
+
+	mutateFn := func() error {
+		utils.SetDefaultLabels(bootstrapConfigSecret, clusterName)
+		ignitionConfig, err := utils.GenerateIgnitionConfig(ctx, client)
+		if err != nil {
+			return fmt.Errorf("failed to generate ignition config: %w", err)
+		}
+		bootstrapConfigSecret.Data = map[string][]byte{ // TODO: confirm what this secret looks likeand the key is
+			"bootstrap.ign": []byte(ignitionConfig),
+		}
+		return nil
+	}
+
+	return bootstrapConfigSecret, mutateFn
+}
+
+func KubeConfigSecret(capiSystemNamespace string, clusterName string, instance *ocicapioperatorv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+	kubeConfigSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-kubeconfig", clusterName),
+			Namespace: capiSystemNamespace,
+		},
+	}
+
+	mutateFn := func() error {
+		utils.SetDefaultLabels(kubeConfigSecret, clusterName)
+		// This needs to contain the kubeconfig for the cluster.
+		return nil
+	}
+
+	return kubeConfigSecret, mutateFn
 }

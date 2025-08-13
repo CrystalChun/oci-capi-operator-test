@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	configv1 "github.com/openshift/api/config/v1"
 	securityv1 "github.com/openshift/api/security/v1"
 
 	"github.com/go-logr/logr"
@@ -49,6 +50,7 @@ import (
 	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	"github.com/openshift/oci-capi-operator/internal/components/capoci"
+	enableautoscaler "github.com/openshift/oci-capi-operator/internal/components/enable_autoscaler"
 	"github.com/openshift/oci-capi-operator/internal/controllers"
 	// +kubebuilder:scaffold:imports
 )
@@ -65,6 +67,7 @@ func init() {
 	utilruntime.Must(rbacv1.AddToScheme(scheme))
 	utilruntime.Must(admissionregistrationv1.AddToScheme(scheme))
 	utilruntime.Must(appsv1.AddToScheme(scheme))
+	utilruntime.Must(configv1.AddToScheme(scheme))
 
 	utilruntime.Must(ocicapioperatorv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(infrastructurev1beta2.AddToScheme(scheme))
@@ -96,6 +99,7 @@ func main() {
 
 type Options struct {
 	CAPOCICredentials capoci.CAPOCICredentials
+	AutoScalingConfig enableautoscaler.AutoScalingConfig
 	RunOptions        RunOptions
 }
 
@@ -161,6 +165,7 @@ func run(ctx context.Context, options Options, setupLog *logr.Logger) error {
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
 		CAPOCICredentials: options.CAPOCICredentials,
+		AutoScalingConfig: options.AutoScalingConfig,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "OCIClusterAutoscaler")
 		return err

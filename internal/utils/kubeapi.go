@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	configv1 "github.com/openshift/api/config/v1"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -137,4 +139,42 @@ func SetOpenshiftCABundleAnnotation(obj *unstructured.Unstructured) error {
 	}
 	obj.SetAnnotations(annotations)
 	return nil
+}
+
+func GetInfrastructureCluster(ctx context.Context, client client.Client) (*configv1.Infrastructure, error) {
+	clusters := &configv1.InfrastructureList{}
+	if err := client.List(ctx, clusters); err != nil {
+		return nil, fmt.Errorf("failed to get infrastructure cluster: %w", err)
+	}
+	if len(clusters.Items) != 1 {
+		return nil, fmt.Errorf("expected 1 infrastructure cluster, got %d", len(clusters.Items))
+	}
+	return &clusters.Items[0], nil
+}
+
+// GetClusterName gets the name of the cluster from the infrastructure cluster.
+func GetClusterName(ctx context.Context, client client.Client) (string, error) {
+	infrastructureCluster, err := GetInfrastructureCluster(ctx, client)
+	if err != nil {
+		return "", fmt.Errorf("failed to get infrastructure cluster: %w", err)
+	}
+	return infrastructureCluster.Status.InfrastructureName, nil
+}
+
+// GetClusterAPIServerInternalURL gets the API server internal URL of the cluster from the infrastructure cluster.
+func GetClusterAPIServerInternalURL(ctx context.Context, client client.Client) (string, error) {
+	infrastructureCluster, err := GetInfrastructureCluster(ctx, client)
+	if err != nil {
+		return "", fmt.Errorf("failed to get infrastructure cluster: %w", err)
+	}
+	return infrastructureCluster.Status.APIServerInternalURL, nil
+}
+
+// GetMachineConfigCA gets the CA certificate for the machine config server
+func GetMachineConfigCA(ctx context.Context, client client.Client) (string, error) {
+	secret := &corev1.Secret{}
+	if err := client.Get(ctx, types.NamespacedName{Name: "machine-config-server-tls", Namespace: "openshift-machine-config-operator"}, secret); err != nil {
+		return "", fmt.Errorf("failed to get machine config server CA: %w", err)
+	}
+	return string(secret.Data["tls.crt"]), nil
 }
