@@ -4,6 +4,8 @@ import (
 	"context"
 	"os"
 
+	"github.com/openshift/oci-capi-operator/internal/components/crds"
+
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -50,13 +52,13 @@ func runInit(ctx context.Context, setupLog *logr.Logger) error {
 	}
 
 	// get the CRDs for the cluster-api provider
-	capiCRDs, err := GetCRDs(ctx, "cluster-api", v1alpha3.CoreProviderType)
+	capiCRDs, err := crds.GetComponents(ctx, "cluster-api", v1alpha3.CoreProviderType)
 	if err != nil {
 		setupLog.Error(err, "Failed to get CRDs for CAPI")
 		return err
 	}
 	// get the CRDs for the capi-provider-oci provider
-	capociCRDs, err := GetCRDs(ctx, "oci", v1alpha3.InfrastructureProviderType)
+	capociCRDs, err := crds.GetComponents(ctx, "oci", v1alpha3.InfrastructureProviderType)
 	if err != nil {
 		setupLog.Error(err, "Failed to get CRDs for CAPOCI")
 		return err
