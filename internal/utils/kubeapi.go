@@ -14,6 +14,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	CertManagerCAInjectAnnotation  = "cert-manager.io/inject-ca-from"
+	OpenshiftCABundleAnnotation    = "service.beta.openshift.io/inject-cabundle"
+	OpenshiftServiceCertAnnotation = "service.beta.openshift.io/serving-cert-secret-name"
+)
+
 // GetSecretData gets the data of the specified key from the referenced secret
 func GetSecretData(ctx context.Context, client client.Client, secretName string, namespace string, keyName string) ([]byte, error) {
 	secret := &corev1.Secret{}
@@ -114,13 +120,14 @@ func SetOpenshiftServiceCertAnnotation(obj *unstructured.Unstructured, name stri
 		return fmt.Errorf("unstructured object is nil")
 	}
 	annotations := map[string]string{
-		"service.beta.openshift.io/serving-cert-secret-name": name,
+		OpenshiftServiceCertAnnotation: name,
 	}
 	if objAnnotations := obj.GetAnnotations(); objAnnotations != nil {
 		for key, value := range objAnnotations {
 			annotations[key] = value
 		}
 	}
+	delete(annotations, CertManagerCAInjectAnnotation)
 	obj.SetAnnotations(annotations)
 	return nil
 }
@@ -130,13 +137,14 @@ func SetOpenshiftCABundleAnnotation(obj *unstructured.Unstructured) error {
 		return fmt.Errorf("unstructured object is nil")
 	}
 	annotations := map[string]string{
-		"service.beta.openshift.io/inject-cabundle": "true",
+		OpenshiftCABundleAnnotation: "true",
 	}
 	if objAnnotations := obj.GetAnnotations(); objAnnotations != nil {
 		for key, value := range objAnnotations {
 			annotations[key] = value
 		}
 	}
+	delete(annotations, CertManagerCAInjectAnnotation)
 	obj.SetAnnotations(annotations)
 	return nil
 }
