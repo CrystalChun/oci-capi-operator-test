@@ -23,6 +23,7 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -40,12 +41,14 @@ import (
 	securityv1 "github.com/openshift/api/security/v1"
 
 	"github.com/go-logr/logr"
+	"github.com/kelseyhightower/envconfig"
 	ocicapioperatorv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	infrastructurev1beta2 "github.com/oracle/cluster-api-provider-oci/api/v1beta2"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap/zapcore"
 	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
+	"github.com/openshift/oci-capi-operator/internal/components/capoci"
 	"github.com/openshift/oci-capi-operator/internal/controllers"
 	// +kubebuilder:scaffold:imports
 )
@@ -91,6 +94,11 @@ func main() {
 	}
 }
 
+type Options struct {
+	CAPOCICredentials capoci.CAPOCICredentials
+	RunOptions        RunOptions
+}
+
 type RunOptions struct {
 	MetricsAddr          string
 	EnableLeaderElection bool
@@ -99,7 +107,7 @@ type RunOptions struct {
 	EnableHTTP2          bool
 }
 
-func run(ctx context.Context, options RunOptions, setupLog *logr.Logger) error {
+func run(ctx context.Context, options Options, setupLog *logr.Logger) error {
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
@@ -113,7 +121,7 @@ func run(ctx context.Context, options RunOptions, setupLog *logr.Logger) error {
 	}
 
 	tlsOpts := []func(*tls.Config){}
-	if !options.EnableHTTP2 {
+	if !options.RunOptions.EnableHTTP2 {
 		tlsOpts = append(tlsOpts, disableHTTP2)
 	}
 
@@ -128,12 +136,12 @@ func run(ctx context.Context, options RunOptions, setupLog *logr.Logger) error {
 	metricsOpts := ctrl.Options{
 		Scheme:                 scheme,
 		WebhookServer:          webhookServer,
-		HealthProbeBindAddress: options.ProbeAddr,
-		LeaderElection:         options.EnableLeaderElection,
+		HealthProbeBindAddress: options.RunOptions.ProbeAddr,
+		LeaderElection:         options.RunOptions.EnableLeaderElection,
 		LeaderElectionID:       "1af242a3.openshift.io",
 	}
-	if options.MetricsAddr != "0" {
-		metricsOpts.HealthProbeBindAddress = options.MetricsAddr
+	if options.RunOptions.MetricsAddr != "0" {
+		metricsOpts.HealthProbeBindAddress = options.RunOptions.MetricsAddr
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), metricsOpts)
@@ -142,9 +150,17 @@ func run(ctx context.Context, options RunOptions, setupLog *logr.Logger) error {
 		return err
 	}
 
+	if err = envconfig.Process("", &options); err != nil {
+		setupLog.Error(err, "failed to process environment variables")
+		os.Exit(1)
+	}
+
+	setupLog.Info("OCI credentials", "tenancyID", options.CAPOCICredentials.TenancyID, "userID", options.CAPOCICredentials.UserID, "region", options.CAPOCICredentials.Region, "fingerprint", options.CAPOCICredentials.Fingerprint)
+
 	if err = (&controllers.OCIClusterAutoscalerReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:            mgr.GetClient(),
+		Scheme:            mgr.GetScheme(),
+		CAPOCICredentials: options.CAPOCICredentials,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "OCIClusterAutoscaler")
 		return err
@@ -182,17 +198,17 @@ func NewRunCommand() *cobra.Command {
 		Short: "Runs the OCI CAPI operator",
 	}
 
-	options := RunOptions{}
+	options := Options{}
 
-	runCmd.Flags().StringVar(&options.MetricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
+	runCmd.Flags().StringVar(&options.RunOptions.MetricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
-	runCmd.Flags().StringVar(&options.ProbeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	runCmd.Flags().BoolVar(&options.EnableLeaderElection, "leader-elect", false,
+	runCmd.Flags().StringVar(&options.RunOptions.ProbeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	runCmd.Flags().BoolVar(&options.RunOptions.EnableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	runCmd.Flags().BoolVar(&options.SecureMetrics, "metrics-secure", true,
+	runCmd.Flags().BoolVar(&options.RunOptions.SecureMetrics, "metrics-secure", true,
 		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
-	runCmd.Flags().BoolVar(&options.EnableHTTP2, "enable-http2", false,
+	runCmd.Flags().BoolVar(&options.RunOptions.EnableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
 
 	runCmd.Run = func(cmd *cobra.Command, args []string) {
