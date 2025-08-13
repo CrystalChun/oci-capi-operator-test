@@ -52,7 +52,7 @@ type OCIClusterAutoscalerReconciler struct {
 	client.Client
 	Scheme            *runtime.Scheme
 	CAPOCICredentials capoci.CAPOCICredentials
-	AutoScalingConfig enableautoscaler.AutoScalingConfig
+	AutoScalingConfig enableautoscaler.Config
 }
 
 // +kubebuilder:rbac:groups=capi.openshift.io,resources=ociclusterautoscalers,verbs=get;list;watch;create;update;patch;delete

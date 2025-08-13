@@ -4,6 +4,7 @@ metadata:
   name: config
   namespace: system
 data:
+  # OCI credentials
   OCI_TENANCY_ID: ""
   OCI_USER_ID: ""
   OCI_REGION: ""
@@ -12,3 +13,22 @@ data:
   OCI_CREDENTIALS_KEY: ""
   OCI_USER_INSTANCE_PRINCIPAL: "false"
 
+  # Autoscaler config
+  AUTOSCALER_CPUs: "2"
+  AUTOSCALER_MEMORY: "4"
+  AUTOSCALER_MIN_NODES: "1"
+  AUTOSCALER_MAX_NODES: "3"
+  AUTOSCALER_SHAPE: "oc3"
+  IMAGE_ID: ""
+
+  # Cluster config 
+  COMPARTMENT_ID: ""
+
+  # Network config
+  VCN_ID: ""
+  SUBNET_ID: ""
+  NETWORK_SECURITY_GROUP_ID: ""
+  CONTROL_PLANE_ENDPOINT: ""
+  API_SERVER_LOAD_BALANCER_ID: ""
+  CLUSTER_NETWORK_CIDR_BLOCK: ""
+  SERVICE_NETWORK_CIDR_BLOCK: ""

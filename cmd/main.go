@@ -99,7 +99,7 @@ func main() {
 
 type Options struct {
 	CAPOCICredentials capoci.CAPOCICredentials
-	AutoScalingConfig enableautoscaler.AutoScalingConfig
+	AutoScalingConfig enableautoscaler.Config
 	RunOptions        RunOptions
 }
 
