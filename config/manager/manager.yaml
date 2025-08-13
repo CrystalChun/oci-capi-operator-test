@@ -77,5 +77,8 @@ spec:
           requests:
             cpu: 10m
             memory: 64Mi
+        envFrom:
+        - configMapRef:
+            name: oci-capi-operator-config
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10

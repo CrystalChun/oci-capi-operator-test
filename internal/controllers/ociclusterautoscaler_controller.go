@@ -48,7 +48,8 @@ import (
 // OCIClusterAutoscalerReconciler reconciles a OCIClusterAutoscaler object
 type OCIClusterAutoscalerReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme            *runtime.Scheme
+	CAPOCICredentials capoci.CAPOCICredentials
 }
 
 // +kubebuilder:rbac:groups=capi.openshift.io,resources=ociclusterautoscalers,verbs=get;list;watch;create;update;patch;delete
@@ -200,7 +201,14 @@ func (r *OCIClusterAutoscalerReconciler) reconcileOCICapiStack(ctx context.Conte
 	}
 	logger.Info("CAPI components created", "components", capiComponents)
 
-	capociComponents, err := capoci.NewComponent(ctx, CAPOCISystemNamespace, instance, CAPOCIWebhookServiceName, r.Scheme)
+	capociAuth, mutateFn := capoci.AuthConfigSecret(instance, CAPOCISystemNamespace, &r.CAPOCICredentials)
+	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, capociAuth, mutateFn)
+	if err != nil {
+		logger.Error(err, "Failed to create CAPOCI auth config")
+		return ctrl.Result{RequeueAfter: time.Second * 20}, nil
+	}
+
+	capociComponents, err := capoci.GetComponents(ctx, CAPOCISystemNamespace, instance, CAPOCIWebhookServiceName, r.Scheme)
 	if err != nil {
 		logger.Error(err, "Failed to create CAPOCI components")
 		return ctrl.Result{RequeueAfter: time.Second * 20}, nil

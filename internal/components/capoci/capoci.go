@@ -14,8 +14,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// NewComponent returns a Component for the CAPOCI controller manager
-func NewComponent(ctx context.Context, capociNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, webhookServiceName string, scheme *runtime.Scheme) ([]unstructured.Unstructured, error) {
+type CAPOCICredentials struct {
+	TenancyID            string `envconfig:"OCI_TENANCY_ID"`
+	UserID               string `envconfig:"OCI_USER_ID"`
+	Region               string `envconfig:"OCI_REGION"`
+	Fingerprint          string `envconfig:"OCI_CREDENTIALS_FINGERPRINT"`
+	PrivateKey           string `envconfig:"OCI_CREDENTIALS_KEY"`
+	UseInstancePrincipal string `envconfig:"OCI_USE_INSTANCE_PRINCIPAL" default:"false"`
+	Passphrase           string `envconfig:"OCI_CREDENTIALS_PASSPHRASE" default:""`
+}
+
+// GetComponents returns a list of components for the CAPOCI controller manager
+func GetComponents(ctx context.Context, capociNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler, webhookServiceName string, scheme *runtime.Scheme) ([]unstructured.Unstructured, error) {
 	components, err := utils.GenerateCAPIComponents(ctx, "oci", v1alpha3.InfrastructureProviderType, capociNamespace)
 	if err != nil {
 		return nil, err
@@ -52,4 +62,29 @@ func Namespace(capociNamespace string, autoscaler *capiv1alpha1.OCIClusterAutosc
 		return nil
 	}
 	return namespace, mutateFn
+}
+
+func AuthConfigSecret(autoscaler *capiv1alpha1.OCIClusterAutoscaler, capociNamespace string, auth *CAPOCICredentials) (client.Object, func() error) {
+	// OCI values and credentials needed
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "capoci-auth-config",
+			Namespace: capociNamespace,
+		},
+	}
+
+	mutateFn := func() error {
+		utils.SetDefaultLabels(secret, autoscaler.Name)
+		secret.Data = map[string][]byte{
+			"tenancy":              []byte(auth.TenancyID),
+			"user":                 []byte(auth.UserID),
+			"region":               []byte(auth.Region),
+			"fingerprint":          []byte(auth.Fingerprint),
+			"key":                  []byte(auth.PrivateKey),
+			"useInstancePrincipal": []byte(auth.UseInstancePrincipal),
+			"passphrase":           []byte(auth.Passphrase),
+		}
+		return nil
+	}
+	return secret, mutateFn
 }
