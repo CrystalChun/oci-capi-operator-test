@@ -43,6 +43,10 @@ spec:
               autoscaling:
                 description: Autoscaling configuration
                 properties:
+                  imageId:
+                    description: ImageID is the OCID of the custom RHCOS image for
+                      deploying new nodes during autoscaling
+                    type: string
                   maxNodes:
                     description: maxNodes is the maximum number of nodes in the autoscaling
                       group
@@ -69,16 +73,10 @@ spec:
                         description: Memory is the amount of memory in GB
                         format: int32
                         type: integer
-                    required:
-                    - cpus
-                    - memory
                     type: object
-                required:
-                - maxNodes
-                - shape
                 type: object
               capi:
-                description: CAPI configuration
+                description: CAPI deployment configuration
                 properties:
                   clusterName:
                     description: ClusterName is the name of the CAPI cluster
@@ -88,102 +86,40 @@ spec:
                     type: string
                 type: object
               clusterAutoscaler:
-                description: ClusterAutoscaler configuration
+                description: ClusterAutoscaler deployment configuration
                 properties:
-                  image:
-                    description: Image is the cluster-autoscaler image to use
+                  cloudProvider:
+                    description: CloudProvider is the cloud provider to use for the
+                      helm chart
                     type: string
-                  resources:
-                    description: Resources defines resource requirements for cluster-autoscaler
-                    properties:
-                      limits:
-                        additionalProperties:
-                          type: string
-                        description: Limits describes the maximum amount of compute
-                          resources allowed
-                        type: object
-                      requests:
-                        additionalProperties:
-                          type: string
-                        description: Requests describes the minimum amount of compute
-                          resources required
-                        type: object
-                    type: object
-                type: object
-              oci:
-                description: OCI configuration for the cluster autoscaler
-                properties:
-                  compartmentId:
-                    description: CompartmentID is the OCI compartment OCID
+                  createRBAC:
+                    description: |-
+                      CreateRBAC is whether or not to create the RBAC resources from the helm chart
+                      for the cluster-autoscaler
+                    type: boolean
+                  createServiceAccount:
+                    description: |-
+                      CreateServiceAccount is whether or not to create the service account
+                      from the helm chart for the cluster-autoscaler
+                    type: boolean
+                  name:
+                    description: Name is the name of the cluster-autoscaler deployment
                     type: string
-                  fingerprint:
-                    description: Fingerprint for the API key
+                  namespace:
+                    description: Namespace is the namespace where the cluster-autoscaler
+                      deployment will be installed
                     type: string
-                  imageId:
-                    description: ImageID is the OCID of the custom RHCOS image
+                  repositoryURL:
+                    description: RepositoryURL is the URL for the helm chart of the
+                      cluster-autoscaler
                     type: string
-                  network:
-                    description: Network configuration
-                    properties:
-                      apiServerLoadBalancerId:
-                        description: APIServerLoadBalancerID is the OCID of the API
-                          server load balancer
-                        type: string
-                      controlPlaneEndpoint:
-                        description: ControlPlaneEndpoint is the control plane endpoint
-                          IP/hostname
-                        type: string
-                      networkSecurityGroupId:
-                        description: NetworkSecurityGroupID for worker nodes
-                        type: string
-                      subnetId:
-                        description: SubnetID is the subnet OCID for worker nodes
-                        type: string
-                      vcnId:
-                        description: VCNID is the Virtual Cloud Network OCID
-                        type: string
-                    required:
-                    - apiServerLoadBalancerId
-                    - controlPlaneEndpoint
-                    - networkSecurityGroupId
-                    - subnetId
-                    - vcnId
-                    type: object
-                  privateKeySecretRef:
-                    description: PrivateKeySecretRef references a secret containing
-                      the private key
-                    properties:
-                      key:
-                        description: Key is the key in the secret
-                        type: string
-                      name:
-                        description: Name is the name of the secret
-                        type: string
-                    required:
-                    - name
-                    type: object
-                  region:
-                    description: Region is the OCI region
+                  serviceAccountName:
+                    description: ServiceAccountName is the name of the service account
+                      the cluster-autoscaler deployment will use
                     type: string
-                  tenancyId:
-                    description: TenancyID is the OCI tenancy OCID
-                    type: string
-                  userId:
-                    description: UserID is the OCI user OCID
-                    type: string
-                required:
-                - compartmentId
-                - fingerprint
-                - imageId
-                - network
-                - privateKeySecretRef
-                - region
-                - tenancyId
-                - userId
                 type: object
             required:
             - autoscaling
-            - oci
             type: object
           status:
             description: OCIClusterAutoscalerStatus defines the observed state of
