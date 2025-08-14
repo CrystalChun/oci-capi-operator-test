@@ -18,6 +18,7 @@ const (
 	CertManagerCAInjectAnnotation  = "cert-manager.io/inject-ca-from"
 	OpenshiftCABundleAnnotation    = "service.beta.openshift.io/inject-cabundle"
 	OpenshiftServiceCertAnnotation = "service.beta.openshift.io/serving-cert-secret-name"
+	ManagedByLabel                 = "capi.openshift.io/managed-by"
 )
 
 // GetSecretData gets the data of the specified key from the referenced secret
@@ -48,6 +49,8 @@ func GetDeploymentCondition(conditions []appsv1.DeploymentCondition, conditionTy
 	return nil
 }
 
+// EditDeploymentCerts modifies the deployment to use the specified secret for the cert volume
+// This is to set the correct serving certs for a deployment's webhook
 func EditDeploymentCerts(scheme *runtime.Scheme, obj *unstructured.Unstructured, secretName string) error {
 	if obj == nil {
 		return fmt.Errorf("unstructured object is nil")
@@ -81,13 +84,14 @@ func EditDeploymentCerts(scheme *runtime.Scheme, obj *unstructured.Unstructured,
 	return nil
 }
 
+// SetDefaultLabels sets the default labels for the object
 func SetDefaultLabels(obj client.Object, instanceName string) error {
 	if obj == nil {
 		return fmt.Errorf("object is nil")
 	}
 	labels := map[string]string{
-		"cluster.x-k8s.io/provider":    "cluster-api",
-		"capi.openshift.io/managed-by": instanceName,
+		"cluster.x-k8s.io/provider": "cluster-api",
+		ManagedByLabel:              instanceName,
 	}
 	if objLabels := obj.GetLabels(); objLabels != nil {
 		for key, value := range objLabels {
@@ -103,8 +107,8 @@ func SetControllerLabels(obj *unstructured.Unstructured, instanceName string) er
 		return fmt.Errorf("unstructured object is nil")
 	}
 	labels := map[string]string{
-		"cluster.x-k8s.io/provider":    "cluster-api",
-		"capi.openshift.io/managed-by": instanceName,
+		"cluster.x-k8s.io/provider": "cluster-api",
+		ManagedByLabel:              instanceName,
 	}
 	if objLabels := obj.GetLabels(); objLabels != nil {
 		for key, value := range objLabels {
@@ -185,4 +189,31 @@ func GetMachineConfigCA(ctx context.Context, client client.Client) (string, erro
 		return "", fmt.Errorf("failed to get machine config server CA: %w", err)
 	}
 	return string(secret.Data["tls.crt"]), nil
+}
+
+// Get CA for kubeconfig secret
+func GetKubeconfigCA(ctx context.Context, client client.Client) (string, error) {
+	cm := &corev1.ConfigMap{}
+	if err := client.Get(ctx, types.NamespacedName{Name: "kube-root-ca.crt", Namespace: "kube-system"}, cm); err != nil {
+		return "", fmt.Errorf("failed to get kubeconfig CA: %w", err)
+	}
+	return string(cm.Data["ca.crt"]), nil
+}
+
+// GetClusterNetworkCIDRBlock gets the cluster network CIDR block from the cluster network config
+func GetClusterNetworkCIDRBlock(ctx context.Context, client client.Client) (string, error) {
+	network := &configv1.Network{}
+	if err := client.Get(ctx, types.NamespacedName{Name: "cluster"}, network); err != nil {
+		return "", fmt.Errorf("failed to get cluster network CIDR block: %w", err)
+	}
+	return network.Spec.ClusterNetwork[0].CIDR, nil
+}
+
+// GetServiceNetworkCIDRBlock gets the service network CIDR block from the cluster network config
+func GetServiceNetworkCIDRBlock(ctx context.Context, client client.Client) (string, error) {
+	network := &configv1.Network{}
+	if err := client.Get(ctx, types.NamespacedName{Name: "cluster"}, network); err != nil {
+		return "", fmt.Errorf("failed to get service network CIDR block: %w", err)
+	}
+	return network.Spec.ServiceNetwork[0], nil
 }
