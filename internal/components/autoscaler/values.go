@@ -32,43 +32,28 @@ func GetValuesString(values *AutoscalerDeploymentValues) string {
 	return fmt.Sprintf(valuesFmt, values.CloudProvider, values.Name, values.Namespace, values.CreateRBAC, values.CreateServiceAccount, values.ServiceAccountName)
 }
 
-func GetAutoscalerDeploymentValues(defaultValues AutoscalerDeploymentValues, autoscaler *capiv1alpha1.OCIClusterAutoscaler) AutoscalerDeploymentValues {
-	cloudProvider := defaultValues.CloudProvider
-	name := defaultValues.Name
-	namespace := defaultValues.Namespace
-	serviceAccountName := defaultValues.ServiceAccountName
-	createRBAC := defaultValues.CreateRBAC
-	createServiceAccount := defaultValues.CreateServiceAccount
-	repoURL := defaultValues.RepositoryURL
-
-	if autoscaler.Spec.ClusterAutoscaler.CloudProvider != "" {
-		cloudProvider = autoscaler.Spec.ClusterAutoscaler.CloudProvider
+// GetAutoscalerDeploymentValues gets the autoscaler deployment values from the instance if it's set
+func GetAutoscalerDeploymentValues(originalValues AutoscalerDeploymentValues, instance *capiv1alpha1.OCIClusterAutoscaler) AutoscalerDeploymentValues {
+	if instance.Spec.ClusterAutoscaler.CloudProvider != "" {
+		originalValues.CloudProvider = instance.Spec.ClusterAutoscaler.CloudProvider
 	}
-	if autoscaler.Spec.ClusterAutoscaler.Name != "" {
-		name = autoscaler.Spec.ClusterAutoscaler.Name
+	if instance.Spec.ClusterAutoscaler.Name != "" {
+		originalValues.Name = instance.Spec.ClusterAutoscaler.Name
 	}
-	if autoscaler.Spec.ClusterAutoscaler.Namespace != "" {
-		namespace = autoscaler.Spec.ClusterAutoscaler.Namespace
+	if instance.Spec.ClusterAutoscaler.Namespace != "" {
+		originalValues.Namespace = instance.Spec.ClusterAutoscaler.Namespace
 	}
-	if autoscaler.Spec.ClusterAutoscaler.ServiceAccountName != "" {
-		serviceAccountName = autoscaler.Spec.ClusterAutoscaler.ServiceAccountName
+	if instance.Spec.ClusterAutoscaler.ServiceAccountName != "" {
+		originalValues.ServiceAccountName = instance.Spec.ClusterAutoscaler.ServiceAccountName
 	}
-	if autoscaler.Spec.ClusterAutoscaler.CreateRBAC {
-		createRBAC = true
+	if instance.Spec.ClusterAutoscaler.CreateRBAC {
+		originalValues.CreateRBAC = true
 	}
-	if autoscaler.Spec.ClusterAutoscaler.CreateServiceAccount {
-		createServiceAccount = true
+	if instance.Spec.ClusterAutoscaler.CreateServiceAccount {
+		originalValues.CreateServiceAccount = true
 	}
-	if autoscaler.Spec.ClusterAutoscaler.RepositoryURL != "" {
-		repoURL = autoscaler.Spec.ClusterAutoscaler.RepositoryURL
+	if instance.Spec.ClusterAutoscaler.RepositoryURL != "" {
+		originalValues.RepositoryURL = instance.Spec.ClusterAutoscaler.RepositoryURL
 	}
-	return AutoscalerDeploymentValues{
-		Name:                 name,
-		Namespace:            namespace,
-		ServiceAccountName:   serviceAccountName,
-		CloudProvider:        cloudProvider,
-		CreateRBAC:           createRBAC,
-		CreateServiceAccount: createServiceAccount,
-		RepositoryURL:        repoURL,
-	}
+	return originalValues
 }
