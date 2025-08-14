@@ -52,13 +52,13 @@ func runInit(ctx context.Context, setupLog *logr.Logger) error {
 	}
 
 	// get the CRDs for the cluster-api provider
-	capiCRDs, err := crds.GetComponents(ctx, "cluster-api", v1alpha3.CoreProviderType)
+	capiCRDs, err := crds.GetClusterctlComponents(ctx, "cluster-api", v1alpha3.CoreProviderType)
 	if err != nil {
 		setupLog.Error(err, "Failed to get CRDs for CAPI")
 		return err
 	}
 	// get the CRDs for the capi-provider-oci provider
-	capociCRDs, err := crds.GetComponents(ctx, "oci", v1alpha3.InfrastructureProviderType)
+	capociCRDs, err := crds.GetClusterctlComponents(ctx, "oci", v1alpha3.InfrastructureProviderType)
 	if err != nil {
 		setupLog.Error(err, "Failed to get CRDs for CAPOCI")
 		return err
