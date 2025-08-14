@@ -22,87 +22,42 @@ import (
 
 // OCIClusterAutoscalerSpec defines the desired state of OCIClusterAutoscaler
 type OCIClusterAutoscalerSpec struct {
-	// OCI configuration for the cluster autoscaler
-	OCI OCIConfig `json:"oci"`
-
 	// Autoscaling configuration
 	Autoscaling AutoscalingConfig `json:"autoscaling"`
 
-	// CAPI configuration
+	// CAPI deployment configuration
 	CAPI CAPIConfig `json:"capi,omitempty"`
 
-	// ClusterAutoscaler configuration
+	// ClusterAutoscaler deployment configuration
 	ClusterAutoscaler ClusterAutoscalerConfig `json:"clusterAutoscaler,omitempty"`
 }
 
-// OCIConfig contains OCI-specific configuration
-type OCIConfig struct {
-	// TenancyID is the OCI tenancy OCID
-	TenancyID string `json:"tenancyId"`
-
-	// UserID is the OCI user OCID
-	UserID string `json:"userId"`
-
-	// Region is the OCI region
-	Region string `json:"region"`
-
-	// Fingerprint for the API key
-	Fingerprint string `json:"fingerprint"`
-
-	// PrivateKeySecretRef references a secret containing the private key
-	PrivateKeySecretRef SecretRef `json:"privateKeySecretRef"`
-
-	// CompartmentID is the OCI compartment OCID
-	CompartmentID string `json:"compartmentId"`
-
-	// ImageID is the OCID of the custom RHCOS image
-	ImageID string `json:"imageId"`
-
-	// Network configuration
-	Network NetworkConfig `json:"network"`
-}
-
-// NetworkConfig contains OCI network configuration
-type NetworkConfig struct {
-	// VCNID is the Virtual Cloud Network OCID
-	VCNID string `json:"vcnId"`
-
-	// SubnetID is the subnet OCID for worker nodes
-	SubnetID string `json:"subnetId"`
-
-	// NetworkSecurityGroupID for worker nodes
-	NetworkSecurityGroupID string `json:"networkSecurityGroupId"`
-
-	// APIServerLoadBalancerID is the OCID of the API server load balancer
-	APIServerLoadBalancerID string `json:"apiServerLoadBalancerId"`
-
-	// ControlPlaneEndpoint is the control plane endpoint IP/hostname
-	ControlPlaneEndpoint string `json:"controlPlaneEndpoint"`
-}
-
-// AutoscalingConfig contains autoscaling configuration
+// AutoscalingConfig contains optional autoscaling configuration
 type AutoscalingConfig struct {
 	// minNodes is the minimum number of nodes in the autoscaling group
 	// +kubebuilder:validation:Minimum=0
 	MinNodes int32 `json:"minNodes,omitempty"`
 
 	// maxNodes is the maximum number of nodes in the autoscaling group
-	MaxNodes int32 `json:"maxNodes"`
+	MaxNodes int32 `json:"maxNodes,omitempty"`
 
 	// nodeShape is the OCI compute shape for autoscaling nodes
-	Shape string `json:"shape"`
+	Shape string `json:"shape,omitempty"`
 
 	// ShapeConfig contains flexible shape configuration
 	ShapeConfig *ShapeConfig `json:"shapeConfig,omitempty"`
+
+	// ImageID is the OCID of the custom RHCOS image for deploying new nodes during autoscaling
+	ImageID string `json:"imageId,omitempty"`
 }
 
 // ShapeConfig contains OCI flexible shape configuration
 type ShapeConfig struct {
 	// CPUs is the number of OCPUs
-	CPUs int32 `json:"cpus"`
+	CPUs int32 `json:"cpus,omitempty"`
 
 	// Memory is the amount of memory in GB
-	Memory int32 `json:"memory"`
+	Memory int32 `json:"memory,omitempty"`
 }
 
 // CAPIConfig contains Cluster API configuration
@@ -114,31 +69,30 @@ type CAPIConfig struct {
 	ClusterName string `json:"clusterName,omitempty"`
 }
 
-// ClusterAutoscalerConfig contains cluster-autoscaler specific configuration
+// ClusterAutoscalerConfig is the configuration for the deployment of the cluster-autoscaler
 type ClusterAutoscalerConfig struct {
-	// Image is the cluster-autoscaler image to use
-	Image string `json:"image,omitempty"`
+	// RepositoryURL is the URL for the helm chart of the cluster-autoscaler
+	RepositoryURL string `json:"repositoryURL,omitempty"`
 
-	// Resources defines resource requirements for cluster-autoscaler
-	Resources *ResourceRequirements `json:"resources,omitempty"`
-}
+	// Name is the name of the cluster-autoscaler deployment
+	Name string `json:"name,omitempty"`
 
-// ResourceRequirements contains resource requirements
-type ResourceRequirements struct {
-	// Requests describes the minimum amount of compute resources required
-	Requests map[string]string `json:"requests,omitempty"`
+	// Namespace is the namespace where the cluster-autoscaler deployment will be installed
+	Namespace string `json:"namespace,omitempty"`
 
-	// Limits describes the maximum amount of compute resources allowed
-	Limits map[string]string `json:"limits,omitempty"`
-}
+	// ServiceAccountName is the name of the service account the cluster-autoscaler deployment will use
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 
-// SecretRef references a secret
-type SecretRef struct {
-	// Name is the name of the secret
-	Name string `json:"name"`
+	// CloudProvider is the cloud provider to use for the helm chart
+	CloudProvider string `json:"cloudProvider,omitempty"`
 
-	// Key is the key in the secret
-	Key string `json:"key,omitempty"`
+	// CreateRBAC is whether or not to create the RBAC resources from the helm chart
+	// for the cluster-autoscaler
+	CreateRBAC bool `json:"createRBAC,omitempty"`
+
+	// CreateServiceAccount is whether or not to create the service account
+	// from the helm chart for the cluster-autoscaler
+	CreateServiceAccount bool `json:"createServiceAccount,omitempty"`
 }
 
 // OCIClusterAutoscalerStatus defines the observed state of OCIClusterAutoscaler
