@@ -102,8 +102,8 @@ func OCIMachineTemplate(capiSystemNamespace, clusterName string, instance *ocica
 	if instance.Spec.Autoscaling.Shape != "" {
 		shape = instance.Spec.Autoscaling.Shape
 	}
-	if instance.Spec.OCI.ImageID != "" {
-		imageID = instance.Spec.OCI.ImageID
+	if instance.Spec.Autoscaling.ImageID != "" {
+		imageID = instance.Spec.Autoscaling.ImageID
 	}
 	machineTemplate := &infrastructurev1beta2.OCIMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
