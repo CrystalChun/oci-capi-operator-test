@@ -159,9 +159,8 @@ func run(ctx context.Context, options Options, setupLog *logr.Logger) error {
 		os.Exit(1)
 	}
 
-	setupLog.Info("OCI credentials", "tenancyID", options.CAPOCICredentials.TenancyID, "userID", options.CAPOCICredentials.UserID, "region", options.CAPOCICredentials.Region, "fingerprint", options.CAPOCICredentials.Fingerprint)
-
 	if err = (&controllers.OCIClusterAutoscalerReconciler{
+		RestConfig:        mgr.GetConfig(),
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
 		CAPOCICredentials: options.CAPOCICredentials,
