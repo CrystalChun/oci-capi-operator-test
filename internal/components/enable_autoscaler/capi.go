@@ -1,6 +1,7 @@
 package enableautoscaler
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/go-openapi/swag"
@@ -149,13 +150,6 @@ func MachineDeployment(capiSystemNamespace, clusterName string, instance *ocicap
 		maxNodes = instance.Spec.Autoscaling.MaxNodes
 	}
 
-	// ensure that min nodes is less than max nodes
-	if minNodes > maxNodes {
-		return nil, func() error {
-			return fmt.Errorf("min nodes must be less than max nodes")
-		}
-	}
-
 	machineDeployment := &capiv1beta1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,
@@ -198,4 +192,46 @@ func MachineDeployment(capiSystemNamespace, clusterName string, instance *ocicap
 	}
 
 	return machineDeployment, mutateFn
+}
+
+// ValidateMinMaxNodes validates the min and max nodes values for the autoscaler
+func ValidateMinMaxNodes(autoscaler *ocicapioperatorv1alpha1.OCIClusterAutoscaler, config Config) error {
+	minNodes := config.AutoScalingConfig.MinNodes
+	maxNodes := config.AutoScalingConfig.MaxNodes
+	if autoscaler.Spec.Autoscaling.MinNodes != 0 {
+		minNodes = autoscaler.Spec.Autoscaling.MinNodes
+	}
+	if autoscaler.Spec.Autoscaling.MaxNodes != 0 {
+		maxNodes = autoscaler.Spec.Autoscaling.MaxNodes
+	}
+
+	// ensure that min nodes is less than max nodes
+	if minNodes > maxNodes {
+		return fmt.Errorf("min nodes must be less than max nodes")
+	} else if minNodes < 0 {
+		return fmt.Errorf("min nodes must be equal to or greater than 0")
+	} else if maxNodes < 0 {
+		return fmt.Errorf("max nodes must be equal to or greater than 0")
+	}
+	return nil
+}
+
+// SetNetworkConfig finds the network CIDRs in the cluster if it is not set in the config
+// then sets them in the config
+func SetNetworkConfig(ctx context.Context, client client.Client, config Config) (Config, error) {
+	if config.NetworkConfig.ClusterNetworkCIDRBlock == "" {
+		clusterNetworkCIDRBlock, err := utils.GetClusterNetworkCIDRBlock(ctx, client)
+		if err != nil {
+			return config, fmt.Errorf("failed to get cluster network CIDR block: %w", err)
+		}
+		config.NetworkConfig.ClusterNetworkCIDRBlock = clusterNetworkCIDRBlock
+	}
+	if config.NetworkConfig.ServiceNetworkCIDRBlock == "" {
+		serviceNetworkCIDRBlock, err := utils.GetServiceNetworkCIDRBlock(ctx, client)
+		if err != nil {
+			return config, fmt.Errorf("failed to get service network CIDR block: %w", err)
+		}
+		config.NetworkConfig.ServiceNetworkCIDRBlock = serviceNetworkCIDRBlock
+	}
+	return config, nil
 }
