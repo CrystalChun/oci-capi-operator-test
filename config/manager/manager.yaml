@@ -68,15 +68,29 @@ spec:
             port: 8081
           initialDelaySeconds: 5
           periodSeconds: 10
-        # TODO(user): Configure the resources accordingly based on the project requirements.
-        # More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
         resources:
           limits:
             cpu: 500m
-            memory: 128Mi
+            memory: 1000Mi
           requests:
             cpu: 10m
-            memory: 64Mi
+            memory: 128Mi
+        env:
+        - name: OCI_CREDENTIALS_FINGERPRINT
+          valueFrom:
+            secretKeyRef:
+              name: oci-capi-operator-capoci-auth-credentials
+              key: fingerprint
+        - name: OCI_CREDENTIALS_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: oci-capi-operator-capoci-auth-credentials
+              key: privateKey
+        - name: OCI_CREDENTIALS_PASSPHRASE
+          valueFrom:
+            secretKeyRef:
+              name: oci-capi-operator-capoci-auth-credentials
+              key: passphrase
         envFrom:
         - configMapRef:
             name: oci-capi-operator-config
