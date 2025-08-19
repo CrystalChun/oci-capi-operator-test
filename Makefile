@@ -322,3 +322,14 @@ catalog-build: opm ## Build a catalog image.
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+
+.PHONY: apply
+apply:
+	$(KUSTOMIZE) build config/samples | $(KUBECTL) apply -f - 
+
+.PHONY: remove
+remove:
+	$(KUBECTL) delete ns capi-system --wait=false --ignore-not-found=true
+	$(KUBECTL) delete ns cluster-api-provider-oci-system --wait=false --ignore-not-found=true
+	$(KUBECTL) patch -p '[{"op":"remove","path":"/metadata/finalizers"}]' ociclusterautoscalers ociclusterautoscaler-sample --type=json
+	$(KUSTOMIZE) build config/samples | $(KUBECTL) delete --ignore-not-found=$(INF) -f -
