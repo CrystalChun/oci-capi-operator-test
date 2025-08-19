@@ -81,7 +81,7 @@ spec:
             secretKeyRef:
               name: oci-capi-operator-capoci-auth-credentials
               key: fingerprint
-        - name: OCI_CREDENTIALS_PRIVATE_KEY
+        - name: OCI_CREDENTIALS_KEY
           valueFrom:
             secretKeyRef:
               name: oci-capi-operator-capoci-auth-credentials
