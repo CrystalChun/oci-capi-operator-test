@@ -117,6 +117,10 @@ spec:
                     description: ServiceAccountName is the name of the service account
                       the cluster-autoscaler deployment will use
                     type: string
+                  version:
+                    description: Version is the helm chart version of the cluster-autoscaler
+                      to install
+                    type: string
                 type: object
             required:
             - autoscaling

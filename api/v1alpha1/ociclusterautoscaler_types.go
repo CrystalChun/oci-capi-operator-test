@@ -93,6 +93,9 @@ type ClusterAutoscalerConfig struct {
 	// CreateServiceAccount is whether or not to create the service account
 	// from the helm chart for the cluster-autoscaler
 	CreateServiceAccount bool `json:"createServiceAccount,omitempty"`
+
+	// Version is the helm chart version of the cluster-autoscaler to install
+	Version string `json:"version,omitempty"`
 }
 
 // OCIClusterAutoscalerStatus defines the observed state of OCIClusterAutoscaler
