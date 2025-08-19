@@ -329,6 +329,10 @@ apply:
 
 .PHONY: remove
 remove:
+	$(KUBECTL) delete validatingwebhookconfiguration capi-validating-webhook-configuration --wait=false --ignore-not-found=true
+	$(KUBECTL) delete mutatingwebhookconfiguration capi-mutating-webhook-configuration --wait=false --ignore-not-found=true
+	$(KUBECTL) delete validatingwebhookconfiguration capoci-validating-webhook-configuration --wait=false --ignore-not-found=true
+	$(KUBECTL) delete mutatingwebhookconfiguration capoci-mutating-webhook-configuration --wait=false --ignore-not-found=true
 	$(KUBECTL) delete ns capi-system --wait=false --ignore-not-found=true
 	$(KUBECTL) delete ns cluster-api-provider-oci-system --wait=false --ignore-not-found=true
 	$(KUBECTL) patch -p '[{"op":"remove","path":"/metadata/finalizers"}]' ociclusterautoscalers ociclusterautoscaler-sample --type=json
