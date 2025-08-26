@@ -8,9 +8,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func GetComponents(ctx context.Context, client client.Client, capiSystemNamespace string, clusterName string, autoscaler *ocicapioperatorv1alpha1.OCIClusterAutoscaler, config Config) *components.Component {
+func GetComponents(ctx context.Context, client client.Client, capiSystemNamespace string, clusterName string, capiServiceAccountName string, autoscaler *ocicapioperatorv1alpha1.OCIClusterAutoscaler, config Config) *components.Component {
 	bootstrapConfigSecret, bootstrapConfigSecretMutateFn := BootstrapConfigSecret(ctx, client, capiSystemNamespace, clusterName, autoscaler)
-	kubeConfigSecret, kubeConfigSecretMutateFn := KubeConfigSecret(capiSystemNamespace, clusterName, autoscaler)
+	kubeConfigSecret, kubeConfigSecretMutateFn := KubeConfigSecret(ctx, client, capiSystemNamespace, clusterName, capiServiceAccountName, autoscaler)
 
 	ociCluster, ociClusterMutateFn := OCICluster(capiSystemNamespace, clusterName, autoscaler, config)
 	cluster, clusterMutateFn := CAPICluster(capiSystemNamespace, clusterName, autoscaler, config)
