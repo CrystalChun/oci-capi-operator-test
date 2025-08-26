@@ -121,6 +121,13 @@ rules:
   - update
   - watch
 - apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests/approval
+  - certificatesigningrequests/status
+  verbs:
+  - update
+- apiGroups:
   - cluster.x-k8s.io
   resources:
   - clusterclasses
