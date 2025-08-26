@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	v1alpha3 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
@@ -64,7 +65,7 @@ func GetComponents(capiSystemNamespace, capociSystemNamespace, capiServiceAccoun
 	}
 }
 
-func CAPINamespace(capiSystemNamespace string, instance *capiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+func CAPINamespace(capiSystemNamespace string, instance *capiv1alpha1.OCIClusterAutoscaler) (client.Object, controllerutil.MutateFn) {
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: capiSystemNamespace,
@@ -78,7 +79,7 @@ func CAPINamespace(capiSystemNamespace string, instance *capiv1alpha1.OCICluster
 }
 
 // SecurityContextConstraints defines the SCC for the CAPI manager and CAPOCI controller manager
-func SecurityContextConstraints(capiSystemNamespace string, capociSystemNamespace string, capociServiceAccountName string, capiServiceAccountName string, instance *capiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+func SecurityContextConstraints(capiSystemNamespace string, capociSystemNamespace string, capociServiceAccountName string, capiServiceAccountName string, instance *capiv1alpha1.OCIClusterAutoscaler) (client.Object, controllerutil.MutateFn) {
 	scc := &securityv1.SecurityContextConstraints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "oci-capi",
