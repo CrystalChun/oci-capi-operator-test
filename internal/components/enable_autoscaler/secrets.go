@@ -26,8 +26,10 @@ func BootstrapConfigSecret(ctx context.Context, client client.Client, capiSystem
 		if err != nil {
 			return fmt.Errorf("failed to generate ignition config: %w", err)
 		}
-		bootstrapConfigSecret.Data = map[string][]byte{ // TODO: confirm what this secret looks likeand the key is
-			"bootstrap.ign": []byte(ignitionConfig),
+
+		bootstrapConfigSecret.Data = map[string][]byte{
+			"value":  []byte(ignitionConfig),
+			"format": []byte("ignition"),
 		}
 		return nil
 	}

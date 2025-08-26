@@ -1,7 +1,6 @@
 package enableautoscaler
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/go-openapi/swag"
@@ -24,9 +23,29 @@ func OCICluster(capiSystemNamespace, clusterName string, instance *ocicapioperat
 
 	mutateFn := func() error {
 		utils.SetDefaultLabels(ociCluster, instance.Name)
+		annotations := map[string]string{
+			"cluster.x-k8s.io/skip-apiserver-lb-management": "true",
+		}
+		if ociCluster.Annotations != nil {
+			for key, value := range ociCluster.Annotations {
+				annotations[key] = value
+			}
+		}
+		ociCluster.Annotations = annotations
+		// Preserve the immutable OCIResourceIdentifier if it exists
+		existingIdentifier := ociCluster.Spec.OCIResourceIdentifier
+
+		// Update the spec
 		ociCluster.Spec = infrastructurev1beta2.OCIClusterSpec{
 			CompartmentId: config.ClusterConfig.CompartmentID,
+			ControlPlaneEndpoint: capiv1beta1.APIEndpoint{
+				Host: config.NetworkConfig.ControlPlaneEndpoint,
+				Port: 6443,
+			},
 			NetworkSpec: infrastructurev1beta2.NetworkSpec{
+				APIServerLB: infrastructurev1beta2.LoadBalancer{
+					LoadBalancerId: swag.String(config.NetworkConfig.APIServerLoadBalancerID),
+				},
 				SkipNetworkManagement: true,
 				Vcn: infrastructurev1beta2.VCN{
 					ID: swag.String(config.NetworkConfig.VCNID),
@@ -49,6 +68,12 @@ func OCICluster(capiSystemNamespace, clusterName string, instance *ocicapioperat
 				},
 			},
 		}
+
+		// Restore the immutable OCIResourceIdentifier if it was previously set
+		if existingIdentifier != "" {
+			ociCluster.Spec.OCIResourceIdentifier = existingIdentifier
+		}
+
 		return nil
 	}
 
@@ -89,22 +114,6 @@ func CAPICluster(capiSystemNamespace, clusterName string, instance *ocicapiopera
 }
 
 func OCIMachineTemplate(capiSystemNamespace, clusterName string, instance *ocicapioperatorv1alpha1.OCIClusterAutoscaler, config Config) (client.Object, func() error) {
-	cpu := config.AutoScalingConfig.CPUs
-	memory := config.AutoScalingConfig.Memory
-	shape := config.AutoScalingConfig.Shape
-	imageID := config.AutoScalingConfig.ImageID
-	if instance.Spec.Autoscaling.ShapeConfig.CPUs != 0 {
-		cpu = instance.Spec.Autoscaling.ShapeConfig.CPUs
-	}
-	if instance.Spec.Autoscaling.ShapeConfig.Memory != 0 {
-		memory = instance.Spec.Autoscaling.ShapeConfig.Memory
-	}
-	if instance.Spec.Autoscaling.Shape != "" {
-		shape = instance.Spec.Autoscaling.Shape
-	}
-	if instance.Spec.Autoscaling.ImageID != "" {
-		imageID = instance.Spec.Autoscaling.ImageID
-	}
 	machineTemplate := &infrastructurev1beta2.OCIMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-autoscaling", clusterName),
@@ -116,11 +125,11 @@ func OCIMachineTemplate(capiSystemNamespace, clusterName string, instance *ocica
 		machineTemplate.Spec = infrastructurev1beta2.OCIMachineTemplateSpec{
 			Template: infrastructurev1beta2.OCIMachineTemplateResource{
 				Spec: infrastructurev1beta2.OCIMachineSpec{
-					ImageId: imageID,
-					Shape:   shape,
+					ImageId: config.AutoScalingConfig.ImageID,
+					Shape:   config.AutoScalingConfig.Shape,
 					ShapeConfig: infrastructurev1beta2.ShapeConfig{
-						Ocpus:       fmt.Sprintf("%d", cpu),
-						MemoryInGBs: fmt.Sprintf("%d", memory), // TODO: check if this is correct
+						Ocpus:       fmt.Sprintf("%d", config.AutoScalingConfig.CPUs),
+						MemoryInGBs: fmt.Sprintf("%d", config.AutoScalingConfig.Memory), // TODO: check if this is correct
 					},
 					IsPvEncryptionInTransitEnabled: false,
 				},
@@ -133,23 +142,6 @@ func OCIMachineTemplate(capiSystemNamespace, clusterName string, instance *ocica
 }
 
 func MachineDeployment(capiSystemNamespace, clusterName string, instance *ocicapioperatorv1alpha1.OCIClusterAutoscaler, config Config) (client.Object, func() error) {
-	cpu := config.AutoScalingConfig.CPUs
-	memory := config.AutoScalingConfig.Memory
-	minNodes := config.AutoScalingConfig.MinNodes
-	maxNodes := config.AutoScalingConfig.MaxNodes
-	if instance.Spec.Autoscaling.ShapeConfig.CPUs != 0 {
-		cpu = instance.Spec.Autoscaling.ShapeConfig.CPUs
-	}
-	if instance.Spec.Autoscaling.ShapeConfig.Memory != 0 {
-		memory = instance.Spec.Autoscaling.ShapeConfig.Memory
-	}
-	if instance.Spec.Autoscaling.MinNodes != 0 {
-		minNodes = instance.Spec.Autoscaling.MinNodes
-	}
-	if instance.Spec.Autoscaling.MaxNodes != 0 {
-		maxNodes = instance.Spec.Autoscaling.MaxNodes
-	}
-
 	machineDeployment := &capiv1beta1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,
@@ -160,10 +152,10 @@ func MachineDeployment(capiSystemNamespace, clusterName string, instance *ocicap
 	mutateFn := func() error {
 		utils.SetDefaultLabels(machineDeployment, instance.Name)
 		annotations := map[string]string{
-			"capacity.cluster-autoscaler.kubernetes.io/cpu":               fmt.Sprintf("%d", cpu),
-			"capacity.cluster-autoscaler.kubernetes.io/memory":            fmt.Sprintf("%dG", memory),
-			"cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size": fmt.Sprintf("%d", minNodes),
-			"cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size": fmt.Sprintf("%d", maxNodes),
+			"capacity.cluster-autoscaler.kubernetes.io/cpu":               fmt.Sprintf("%d", config.AutoScalingConfig.CPUs),
+			"capacity.cluster-autoscaler.kubernetes.io/memory":            fmt.Sprintf("%dG", config.AutoScalingConfig.Memory),
+			"cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size": fmt.Sprintf("%d", config.AutoScalingConfig.MinNodes),
+			"cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size": fmt.Sprintf("%d", config.AutoScalingConfig.MaxNodes),
 		}
 		if machineDeployment.Annotations != nil {
 			for key, value := range machineDeployment.Annotations {
@@ -214,24 +206,4 @@ func ValidateMinMaxNodes(autoscaler *ocicapioperatorv1alpha1.OCIClusterAutoscale
 		return fmt.Errorf("max nodes must be equal to or greater than 0")
 	}
 	return nil
-}
-
-// SetNetworkConfig finds the network CIDRs in the cluster if it is not set in the config
-// then sets them in the config
-func SetNetworkConfig(ctx context.Context, client client.Client, config Config) (Config, error) {
-	if config.NetworkConfig.ClusterNetworkCIDRBlock == "" {
-		clusterNetworkCIDRBlock, err := utils.GetClusterNetworkCIDRBlock(ctx, client)
-		if err != nil {
-			return config, fmt.Errorf("failed to get cluster network CIDR block: %w", err)
-		}
-		config.NetworkConfig.ClusterNetworkCIDRBlock = clusterNetworkCIDRBlock
-	}
-	if config.NetworkConfig.ServiceNetworkCIDRBlock == "" {
-		serviceNetworkCIDRBlock, err := utils.GetServiceNetworkCIDRBlock(ctx, client)
-		if err != nil {
-			return config, fmt.Errorf("failed to get service network CIDR block: %w", err)
-		}
-		config.NetworkConfig.ServiceNetworkCIDRBlock = serviceNetworkCIDRBlock
-	}
-	return config, nil
 }
