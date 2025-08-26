@@ -2,6 +2,7 @@ package components
 
 import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type Component struct {
@@ -12,7 +13,7 @@ type Component struct {
 type Subcomponent struct {
 	Name     string
 	Object   client.Object
-	MutateFn func() error
+	MutateFn controllerutil.MutateFn
 }
 
 type SubcomponentList []Subcomponent
