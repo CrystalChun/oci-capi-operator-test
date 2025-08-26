@@ -2,6 +2,7 @@ package enableautoscaler
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 
 	ocicapioperatorv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
@@ -11,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// BootstrapConfigSecret is a secret that contains the bootstrap config for additional nodes that are added to the cluster.
+// BootstrapConfigSecret creates a secret that contains the bootstrap config for additional workernodes that are added to the cluster.
 func BootstrapConfigSecret(ctx context.Context, client client.Client, capiSystemNamespace string, clusterName string, instance *ocicapioperatorv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
 	bootstrapConfigSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -37,7 +38,29 @@ func BootstrapConfigSecret(ctx context.Context, client client.Client, capiSystem
 	return bootstrapConfigSecret, mutateFn
 }
 
-func KubeConfigSecret(capiSystemNamespace string, clusterName string, instance *ocicapioperatorv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+var kubeconfigFmt = `
+apiVersion: v1
+kind: Config
+clusters:
+- name: %s
+	cluster:
+		server: https://kubernetes.default.svc
+		certificate-authority-data: %s
+	contexts:
+	- name: %s
+		context:
+			cluster: %s
+			user: %s
+			namespace: %s
+	current-context: %s
+	users:
+	- name: %s
+		user:
+			token: %s
+`
+
+// KubeConfigSecret creates a secret for CAPI so it can access this cluster.
+func KubeConfigSecret(ctx context.Context, client client.Client, capiSystemNamespace string, clusterName string, capiServiceAccountName string, instance *ocicapioperatorv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
 	kubeConfigSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-kubeconfig", clusterName),
@@ -46,8 +69,19 @@ func KubeConfigSecret(capiSystemNamespace string, clusterName string, instance *
 	}
 
 	mutateFn := func() error {
+		secret, err := utils.GetSecret(ctx, client, fmt.Sprintf("%s-token", capiServiceAccountName), capiSystemNamespace)
+		if err != nil {
+			return fmt.Errorf("failed to get service account secret: %w", err)
+		}
+
+		caCrt := base64.StdEncoding.EncodeToString(secret.Data["ca.crt"])
+		token := base64.StdEncoding.EncodeToString(secret.Data["token"])
+		kubeconfig := fmt.Sprintf(kubeconfigFmt, clusterName, caCrt, clusterName, clusterName, capiServiceAccountName, capiSystemNamespace, clusterName, clusterName, token)
+
 		utils.SetDefaultLabels(kubeConfigSecret, clusterName)
-		// This needs to contain the kubeconfig for the cluster.
+		kubeConfigSecret.Data = map[string][]byte{
+			"value": []byte(kubeconfig),
+		}
 		return nil
 	}
 

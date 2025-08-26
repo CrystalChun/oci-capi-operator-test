@@ -135,6 +135,7 @@ func (r *OCIClusterAutoscalerReconciler) Reconcile(ctx context.Context, req ctrl
 	} else {
 		if controllerutil.ContainsFinalizer(instance, FinalizerName) {
 			// Perform cleanup
+
 			if err := r.cleanup(ctx, instance); err != nil {
 				logger.Error(err, "Failed to cleanup")
 				return ctrl.Result{}, err
@@ -189,7 +190,7 @@ func (r *OCIClusterAutoscalerReconciler) reconcileOCICapiStack(ctx context.Conte
 	}
 
 	// Step 1: Reconcile CAPI components
-	capiComponent := capi.GetComponents(CAPISystemNamespace, CAPOCISystemNamespace, CAPIServiceAccountName, CAPOCIServiceAccountName, instance)
+	capiComponent := capi.GetComponents(CAPISystemNamespace, CAPOCISystemNamespace, CAPIServiceAccountName, CAPOCIServiceAccountName, CAPIClusterRoleBindingName, instance)
 	err := reconcileComponents(ctx, r.Client, capiComponent)
 	if err != nil {
 		logger.Error(err, "Failed to reconcile CAPI components")
@@ -273,13 +274,20 @@ func (r *OCIClusterAutoscalerReconciler) reconcileOCICapiStack(ctx context.Conte
 		return ctrl.Result{}, err
 	}
 
+	secret, err := utils.GetSecret(ctx, r.Client, fmt.Sprintf("%s-token", CAPIServiceAccountName), CAPISystemNamespace)
+	if err != nil {
+		logger.Error(err, "Failed to get CAPI service account secret")
+		return ctrl.Result{}, err
+	}
+	logger.Info("CAPI service account secret", "secret", secret)
+
 	autoscalerConfig, err := enableautoscaler.SetAutoScalingConfig(ctx, r.Client, instance, r.AutoScalingConfig)
 	if err != nil {
 		logger.Error(err, "Failed to set autoscaler config")
 		return ctrl.Result{}, err
 	}
 
-	enableAutoscalerComponent := enableautoscaler.GetComponents(ctx, r.Client, CAPISystemNamespace, clusterName, instance, autoscalerConfig)
+	enableAutoscalerComponent := enableautoscaler.GetComponents(ctx, r.Client, CAPISystemNamespace, clusterName, CAPIServiceAccountName, instance, autoscalerConfig)
 	err = reconcileComponents(ctx, r.Client, enableAutoscalerComponent)
 	if err != nil {
 		logger.Error(err, "Failed to reconcile Enable Autoscaler components")
@@ -292,110 +300,154 @@ func (r *OCIClusterAutoscalerReconciler) reconcileOCICapiStack(ctx context.Conte
 func (r *OCIClusterAutoscalerReconciler) cleanup(ctx context.Context, instance *capiv1alpha1.OCIClusterAutoscaler) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Starting cleanup of all resources")
+	autoscalerValues := getAutoscalerDeploymentValues(instance)
 	clusterName, err := utils.GetClusterName(ctx, r.Client)
 	if err != nil {
 		logger.Error(err, "Failed to get cluster name")
 		return err
 	}
-	autoscalerComponents := enableautoscaler.GetComponents(ctx, r.Client, CAPISystemNamespace, clusterName, instance, r.AutoScalingConfig)
+	autoscalerComponents := enableautoscaler.GetComponents(ctx, r.Client, CAPISystemNamespace, clusterName, CAPIServiceAccountName, instance, r.AutoScalingConfig)
 
-	for _, component := range autoscalerComponents.Subcomponents {
-		logger.Info("Removing enable autoscaler component", "component", component.Name, "kind", component.Object.GetObjectKind().GroupVersionKind().Kind)
-		err := r.Client.Delete(ctx, component.Object)
-		if err != nil && !errors.IsNotFound(err) {
-			logger.Error(err, "Failed to remove enable autoscaler component", "component", component.Name, "kind", component.Object.GetObjectKind().GroupVersionKind().Kind)
-			return err
-		}
+	err = removeComponent(ctx, r.Client, autoscalerComponents)
+	if err != nil {
+		logger.Error(err, "Failed to remove enable autoscaler components")
+		return err
 	}
 	logger.Info("Enable autoscaler components removed")
 
-	// Define the resource types we need to clean up based on RBAC rules and SetupWithManager
-	gvks := []struct {
-		list     client.ObjectList
-		resource string
-	}{
-		{&corev1.NamespaceList{}, "namespaces"},
-		{&corev1.ServiceAccountList{}, "serviceaccounts"},
-		{&corev1.SecretList{}, "secrets"},
-		{&corev1.ConfigMapList{}, "configmaps"},
-		{&corev1.ServiceList{}, "services"},
-		{&appsv1.DeploymentList{}, "deployments"},
-		{&rbacv1.ClusterRoleList{}, "clusterroles"},
-		{&rbacv1.ClusterRoleBindingList{}, "clusterrolebindings"},
-		{&rbacv1.RoleList{}, "roles"},
-		{&rbacv1.RoleBindingList{}, "rolebindings"},
-		{&admissionregistrationv1.ValidatingWebhookConfigurationList{}, "validatingwebhookconfigurations"},
-		{&admissionregistrationv1.MutatingWebhookConfigurationList{}, "mutatingwebhookconfigurations"},
-		{&securityv1.SecurityContextConstraintsList{}, "securitycontextconstraints"},
+	err = autoscaler.RemoveAutoscaler(&autoscalerValues, r.RestConfig)
+	if err != nil {
+		logger.Error(err, "Failed to remove autoscaler Helm chart")
+		return err
 	}
+	logger.Info("Autoscaler Helm chart removed")
 
-	// Label selector for resources managed by this controller
-	labelSelector := labels.SelectorFromSet(map[string]string{ManagedByLabel: instance.Name})
-
-	// Namespaces to check
-	namespaces := []string{CAPISystemNamespace, CAPOCISystemNamespace}
-
-	// Delete resources in each namespace
-	for _, ns := range namespaces {
-		logger.Info("Cleaning up resources in namespace", "namespace", ns)
-
-		for _, gvk := range gvks {
-			logger.Info("Listing resources", "resource", gvk.resource, "namespace", ns)
-
-			// Skip namespace-scoped list for cluster-scoped resources
-			if gvk.resource == "clusterroles" ||
-				gvk.resource == "clusterrolebindings" ||
-				gvk.resource == "validatingwebhookconfigurations" ||
-				gvk.resource == "mutatingwebhookconfigurations" ||
-				gvk.resource == "securitycontextconstraints" {
-				continue
-			}
-
-			// List resources
-			err := r.List(ctx, gvk.list, &client.ListOptions{
-				Namespace:     ns,
-				LabelSelector: labelSelector,
-			})
-			if err != nil {
-				logger.Error(err, "Failed to list resources", "resource", gvk.resource, "namespace", ns)
-				return err
-			}
-
-			// Delete each resource
-			if err := deleteResourceList(ctx, r.Client, gvk.list, logger); err != nil {
-				return err
-			}
-		}
+	capociComponents, err := capoci.GetClusterctlComponents(ctx, CAPOCIDeploymentName, CAPOCIServiceAccountName, CAPOCISystemNamespace, instance, CAPOCIWebhookServiceName, r.Scheme)
+	if err != nil {
+		logger.Error(err, "Failed to get CAPOCI clusterctl components")
+		return err
 	}
-
-	// Delete cluster-scoped resources
-	logger.Info("Cleaning up cluster-scoped resources")
-	for _, gvk := range gvks {
-		// Only process cluster-scoped resources
-		if gvk.resource != "clusterroles" &&
-			gvk.resource != "clusterrolebindings" &&
-			gvk.resource != "validatingwebhookconfigurations" &&
-			gvk.resource != "mutatingwebhookconfigurations" &&
-			gvk.resource != "securitycontextconstraints" {
-			continue
-		}
-
-		logger.Info("Listing cluster-scoped resources", "resource", gvk.resource)
-
-		// List resources
-		err := r.List(ctx, gvk.list, &client.ListOptions{
-			LabelSelector: labelSelector,
-		})
-		if err != nil {
-			logger.Error(err, "Failed to list cluster-scoped resources", "resource", gvk.resource)
-			return err
-		}
-
-		// Delete each resource
-		if err := deleteResourceList(ctx, r.Client, gvk.list, logger); err != nil {
-			return err
-		}
+	err = removeClusterctlComponents(ctx, r.Client, capociComponents)
+	if err != nil {
+		logger.Error(err, "Failed to remove CAPOCI clusterctl components")
+		return err
 	}
+	logger.Info("CAPOCI clusterctl components removed")
+
+	capociComponent := capoci.GetComponents(CAPOCISystemNamespace, instance, &r.CAPOCICredentials)
+	err = removeComponent(ctx, r.Client, capociComponent)
+	if err != nil {
+		logger.Error(err, "Failed to remove CAPOCI components")
+		return err
+	}
+	logger.Info("CAPOCI components removed")
+
+	capiComponents, err := capi.GetClusterctlComponents(ctx, CAPIDeploymentName, CAPIServiceAccountName, CAPISystemNamespace, instance, CAPIWebhookServiceName, r.Scheme)
+	if err != nil {
+		logger.Error(err, "Failed to get CAPI clusterctl components")
+		return err
+	}
+	err = removeClusterctlComponents(ctx, r.Client, capiComponents)
+	if err != nil {
+		logger.Error(err, "Failed to remove CAPI clusterctl components")
+		return err
+	}
+	logger.Info("CAPI clusterctl components removed")
+
+	capiComponent := capi.GetComponents(CAPISystemNamespace, CAPOCISystemNamespace, CAPIServiceAccountName, CAPOCIServiceAccountName, CAPIClusterRoleBindingName, instance)
+	err = removeComponent(ctx, r.Client, capiComponent)
+	if err != nil {
+		logger.Error(err, "Failed to remove CAPI components")
+		return err
+	}
+	logger.Info("CAPI components removed")
+	/* 	// Define the resource types we need to clean up based on RBAC rules and SetupWithManager
+	   	gvks := []struct {
+	   		list     client.ObjectList
+	   		resource string
+	   	}{
+	   		{&corev1.NamespaceList{}, "namespaces"},
+	   		{&corev1.ServiceAccountList{}, "serviceaccounts"},
+	   		{&corev1.SecretList{}, "secrets"},
+	   		{&corev1.ConfigMapList{}, "configmaps"},
+	   		{&corev1.ServiceList{}, "services"},
+	   		{&appsv1.DeploymentList{}, "deployments"},
+	   		{&rbacv1.ClusterRoleList{}, "clusterroles"},
+	   		{&rbacv1.ClusterRoleBindingList{}, "clusterrolebindings"},
+	   		{&rbacv1.RoleList{}, "roles"},
+	   		{&rbacv1.RoleBindingList{}, "rolebindings"},
+	   		{&admissionregistrationv1.ValidatingWebhookConfigurationList{}, "validatingwebhookconfigurations"},
+	   		{&admissionregistrationv1.MutatingWebhookConfigurationList{}, "mutatingwebhookconfigurations"},
+	   		{&securityv1.SecurityContextConstraintsList{}, "securitycontextconstraints"},
+	   	}
+
+	   	// Label selector for resources managed by this controller
+	   	labelSelector := labels.SelectorFromSet(map[string]string{ManagedByLabel: instance.Name})
+
+	   	// Namespaces to check
+	   	namespaces := []string{CAPISystemNamespace, CAPOCISystemNamespace}
+
+	   	// Delete resources in each namespace
+	   	for _, ns := range namespaces {
+	   		logger.Info("Cleaning up resources in namespace", "namespace", ns)
+
+	   		for _, gvk := range gvks {
+	   			logger.Info("Listing resources", "resource", gvk.resource, "namespace", ns)
+
+	   			// Skip namespace-scoped list for cluster-scoped resources
+	   			if gvk.resource == "clusterroles" ||
+	   				gvk.resource == "clusterrolebindings" ||
+	   				gvk.resource == "validatingwebhookconfigurations" ||
+	   				gvk.resource == "mutatingwebhookconfigurations" ||
+	   				gvk.resource == "securitycontextconstraints" {
+	   				continue
+	   			}
+
+	   			// List resources
+	   			err := r.List(ctx, gvk.list, &client.ListOptions{
+	   				Namespace:     ns,
+	   				LabelSelector: labelSelector,
+	   			})
+	   			if err != nil {
+	   				logger.Error(err, "Failed to list resources", "resource", gvk.resource, "namespace", ns)
+	   				return err
+	   			}
+
+	   			// Delete each resource
+	   			if err := deleteResourceList(ctx, r.Client, gvk.list, logger); err != nil {
+	   				return err
+	   			}
+	   		}
+	   	}
+
+	   	// Delete cluster-scoped resources
+	   	logger.Info("Cleaning up cluster-scoped resources")
+	   	for _, gvk := range gvks {
+	   		// Only process cluster-scoped resources
+	   		if gvk.resource != "clusterroles" &&
+	   			gvk.resource != "clusterrolebindings" &&
+	   			gvk.resource != "validatingwebhookconfigurations" &&
+	   			gvk.resource != "mutatingwebhookconfigurations" &&
+	   			gvk.resource != "securitycontextconstraints" {
+	   			continue
+	   		}
+
+	   		logger.Info("Listing cluster-scoped resources", "resource", gvk.resource)
+
+	   		// List resources
+	   		err := r.List(ctx, gvk.list, &client.ListOptions{
+	   			LabelSelector: labelSelector,
+	   		})
+	   		if err != nil {
+	   			logger.Error(err, "Failed to list cluster-scoped resources", "resource", gvk.resource)
+	   			return err
+	   		}
+
+	   		// Delete each resource
+	   		if err := deleteResourceList(ctx, r.Client, gvk.list, logger); err != nil {
+	   			return err
+	   		}
+	   	} */
 
 	// Remove the Autoscaler Helm chart
 
@@ -528,6 +580,26 @@ func reconcileClusterctlComponents(ctx context.Context, client client.Client, co
 			return err
 		}
 		//fmt.Printf("Component %s operation: %s\n", component.GetName(), op)
+	}
+	return nil
+}
+
+func removeComponent(ctx context.Context, client client.Client, component *components.Component) error {
+	for _, subcomponent := range component.Subcomponents {
+		err := client.Delete(ctx, subcomponent.Object)
+		if err != nil && !errors.IsNotFound(err) {
+			return err
+		}
+	}
+	return nil
+}
+func removeClusterctlComponents(ctx context.Context, client client.Client, components []unstructured.Unstructured) error {
+
+	for _, component := range components {
+		err := client.Delete(ctx, &component)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

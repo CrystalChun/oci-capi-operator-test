@@ -11,6 +11,7 @@ import (
 
 	securityv1 "github.com/openshift/api/security/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -53,14 +54,19 @@ func GetClusterctlComponents(ctx context.Context, deploymentName string, service
 	return reconcileComponents, nil
 }
 
-func GetComponents(capiSystemNamespace, capociSystemNamespace, capiServiceAccountName, capociServiceAccountName string, instance *capiv1alpha1.OCIClusterAutoscaler) *components.Component {
+func GetComponents(capiSystemNamespace, capociSystemNamespace, capiServiceAccountName, capociServiceAccountName, clusterRoleBindingName string, instance *capiv1alpha1.OCIClusterAutoscaler) *components.Component {
 	capiSCC, capiSCCMutateFn := SecurityContextConstraints(capiSystemNamespace, capociSystemNamespace, capociServiceAccountName, capiServiceAccountName, instance)
 	namespace, namespaceMutateFn := CAPINamespace(capiSystemNamespace, instance)
+	clusterRoleBinding, clusterRoleBindingMutateFn := ClusterRoleBinding(clusterRoleBindingName, capiServiceAccountName, capiSystemNamespace)
+	serviceAccountSecret, serviceAccountSecretMutateFn := ServiceAccountSecret(capiServiceAccountName, capiSystemNamespace)
+
 	return &components.Component{
 		Name: "CAPI",
 		Subcomponents: components.SubcomponentList{
 			{Name: "scc", Object: capiSCC, MutateFn: capiSCCMutateFn},
 			{Name: "namespace", Object: namespace, MutateFn: namespaceMutateFn},
+			{Name: "clusterRoleBinding", Object: clusterRoleBinding, MutateFn: clusterRoleBindingMutateFn},
+			{Name: "serviceAccountSecret", Object: serviceAccountSecret, MutateFn: serviceAccountSecretMutateFn},
 		},
 	}
 }
@@ -103,4 +109,48 @@ func SecurityContextConstraints(capiSystemNamespace string, capociSystemNamespac
 	}
 
 	return scc, mutateFn
+}
+
+// ClusterRoleBinding binds the cluster-admin role to the CAPI service account in order to get the token
+// and CA certificate to create a Kubeconfig secret.
+func ClusterRoleBinding(clusterRoleBindingName string, serviceAccountName string, capiSystemNamespace string) (client.Object, controllerutil.MutateFn) {
+	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: clusterRoleBindingName,
+		},
+	}
+	mutateFn := func() error {
+		clusterRoleBinding.RoleRef = rbacv1.RoleRef{
+			Kind: "ClusterRole",
+			Name: "cluster-admin",
+		}
+		clusterRoleBinding.Subjects = []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      serviceAccountName,
+				Namespace: capiSystemNamespace,
+			},
+		}
+		return nil
+	}
+	return clusterRoleBinding, mutateFn
+}
+
+// ServiceAccountSecret creates a secret for the CAPI service account in order to get the token
+// and CA certificate used to create a Kubeconfig secret.
+func ServiceAccountSecret(serviceAccountName string, capiSystemNamespace string) (client.Object, controllerutil.MutateFn) {
+	serviceAccountSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-token", serviceAccountName),
+			Namespace: capiSystemNamespace,
+		},
+	}
+	mutateFn := func() error {
+		serviceAccountSecret.Type = corev1.SecretTypeServiceAccountToken
+		serviceAccountSecret.Annotations = map[string]string{
+			"kubernetes.io/service-account.name": serviceAccountName,
+		}
+		return nil
+	}
+	return serviceAccountSecret, mutateFn
 }
