@@ -21,17 +21,23 @@ const (
 	ManagedByLabel                 = "capi.openshift.io/managed-by"
 )
 
-// GetSecretData gets the data of the specified key from the referenced secret
-func GetSecretData(ctx context.Context, client client.Client, secretName string, namespace string, keyName string) ([]byte, error) {
+func GetSecret(ctx context.Context, client client.Client, secretName string, namespace string) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
-
 	if err := client.Get(ctx, types.NamespacedName{
 		Name:      secretName,
 		Namespace: namespace,
 	}, secret); err != nil {
+		return nil, err
+	}
+	return secret, nil
+}
+
+// GetSecretData gets the data of the specified key from the referenced secret
+func GetSecretData(ctx context.Context, client client.Client, secretName string, namespace string, keyName string) ([]byte, error) {
+	secret, err := GetSecret(ctx, client, secretName, namespace)
+	if err != nil {
 		return nil, fmt.Errorf("failed to get secret: %w", err)
 	}
-
 	data, exists := secret.Data[keyName]
 	if !exists {
 		return nil, fmt.Errorf("key %s not found in secret %s", keyName, secretName)
@@ -84,15 +90,19 @@ func EditDeploymentCerts(scheme *runtime.Scheme, obj *unstructured.Unstructured,
 	return nil
 }
 
+func GetDefaultLabels(instanceName string) map[string]string {
+	return map[string]string{
+		"cluster.x-k8s.io/provider": "cluster-api",
+		ManagedByLabel:              instanceName,
+	}
+}
+
 // SetDefaultLabels sets the default labels for the object
 func SetDefaultLabels(obj client.Object, instanceName string) error {
 	if obj == nil {
 		return fmt.Errorf("object is nil")
 	}
-	labels := map[string]string{
-		"cluster.x-k8s.io/provider": "cluster-api",
-		ManagedByLabel:              instanceName,
-	}
+	labels := GetDefaultLabels(instanceName)
 	if objLabels := obj.GetLabels(); objLabels != nil {
 		for key, value := range objLabels {
 			labels[key] = value
@@ -122,6 +132,9 @@ func SetControllerLabels(obj *unstructured.Unstructured, instanceName string) er
 func SetOpenshiftServiceCertAnnotation(obj *unstructured.Unstructured, name string) error {
 	if obj == nil {
 		return fmt.Errorf("unstructured object is nil")
+	}
+	if obj.GetName() != name {
+		return nil
 	}
 	annotations := map[string]string{
 		OpenshiftServiceCertAnnotation: name,
