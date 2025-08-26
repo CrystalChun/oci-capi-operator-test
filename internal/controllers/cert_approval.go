@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	certificatesv1client "k8s.io/client-go/kubernetes/typed/certificates/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -37,15 +38,20 @@ import (
 // CertificateApprovalReconciler reconciles CertificateSigningRequests for OCI machines
 type CertificateApprovalReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme    *runtime.Scheme
+	CSRClient certificatesv1client.CertificatesV1Client
 }
 
 // +kubebuilder:rbac:groups=certificates.k8s.io,resources=certificatesigningrequests,verbs=get;list;watch;update
+// +kubebuilder:rbac:groups=certificates.k8s.io,resources=certificatesigningrequests/approval,verbs=update
+// +kubebuilder:rbac:groups=certificates.k8s.io,resources=certificatesigningrequests/status,verbs=update
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=ocimachines,verbs=get;list;watch
 
 // Reconcile handles certificate approval for OCI machines
 func (r *CertificateApprovalReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
+
+	logger.Info("Reconciling certificate approval", "request", req)
 
 	// Fetch the CSR
 	csr := &certificatesv1.CertificateSigningRequest{}
@@ -85,15 +91,16 @@ func (r *CertificateApprovalReconciler) Reconcile(ctx context.Context, req ctrl.
 		csr.Status.Conditions = append(csr.Status.Conditions, certificatesv1.CertificateSigningRequestCondition{
 			Type:               certificatesv1.CertificateApproved,
 			Status:             corev1.ConditionTrue,
-			Reason:             "OCIMachineApproval",
-			Message:            "Approved by OCI CAPI operator for matching OCIMachine",
+			Reason:             "AutoApproval",
+			Message:            "Automatically approved by OCI CAPI operator for matching OCIMachine",
 			LastUpdateTime:     now,
 			LastTransitionTime: now,
 		})
 
-		if err := r.Status().Update(ctx, csr); err != nil {
+		if _, err := r.CSRClient.CertificateSigningRequests().UpdateApproval(ctx, csr.Name, csr, metav1.UpdateOptions{}); err != nil {
 			return ctrl.Result{}, err
 		}
+		logger.Info("Approved CSR", "csr", csr.Name, "hostname", hostname)
 	}
 
 	return ctrl.Result{}, nil
