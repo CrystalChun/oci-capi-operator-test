@@ -7,18 +7,20 @@ import (
 )
 
 type AutoscalerDeploymentValues struct {
-	CloudProvider        string `default:"clusterapi"`
-	Name                 string `default:"oci-cluster-autoscaler"`
-	Namespace            string `default:"capi-system"`
-	ServiceAccountName   string `default:"oci-cluster-autoscaler"`
-	CreateRBAC           bool   `default:"true"`
-	CreateServiceAccount bool   `default:"true"`
-	RepositoryURL        string `default:"https://kubernetes-sigs.github.io/cluster-api-autoscaler"`
-	Chart                string `default:"cluster-api-autoscaler"`
-	Version              string `default:"9.4.0"`
+	CloudProvider string
+	// Name is both the name of the autoscaler Helm chart and the name of the Helm release
+	Name                 string
+	Namespace            string
+	ServiceAccountName   string
+	CreateRBAC           bool
+	CreateServiceAccount bool
+	RepositoryURL        string
+	Chart                string
+	Version              string
 }
 
-var valuesFmt = `cloudProvider: %s
+var valuesFmt = `
+cloudProvider: %s
 fullnameOverride: %s
 autoDiscovery:
   namespace: %s
@@ -28,8 +30,16 @@ rbac:
     create: %t
     name: %s`
 
+// GetValuesString gets the value overrides as a string for the autoscaler helm chart deployment
 func GetValuesString(values *AutoscalerDeploymentValues) string {
-	return fmt.Sprintf(valuesFmt, values.CloudProvider, values.Name, values.Namespace, values.CreateRBAC, values.CreateServiceAccount, values.ServiceAccountName)
+	return fmt.Sprintf(valuesFmt,
+		values.CloudProvider,
+		values.Name,
+		values.Namespace,
+		values.CreateRBAC,
+		values.CreateServiceAccount,
+		values.ServiceAccountName,
+	)
 }
 
 // GetAutoscalerDeploymentValues gets the autoscaler deployment values from the instance if it's set
@@ -54,6 +64,9 @@ func GetAutoscalerDeploymentValues(originalValues AutoscalerDeploymentValues, in
 	}
 	if instance.Spec.ClusterAutoscaler.RepositoryURL != "" {
 		originalValues.RepositoryURL = instance.Spec.ClusterAutoscaler.RepositoryURL
+	}
+	if instance.Spec.ClusterAutoscaler.Version != "" {
+		originalValues.Version = instance.Spec.ClusterAutoscaler.Version
 	}
 	return originalValues
 }
