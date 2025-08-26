@@ -17,8 +17,8 @@ const (
 	CAPIWebhookServiceName   = "capi-webhook-service"
 	CAPOCIWebhookServiceName = "capoci-webhook-service"
 
-	// Default Images
 	AutoscalerRepoURL        = "https://kubernetes.github.io/autoscaler"
 	AutoscalerChartName      = "oci-cluster-autoscaler/cluster-autoscaler"
 	AutoscalerDeploymentName = "oci-cluster-autoscaler"
+	AutoScalerCloudProvider  = "clusterapi"
 )
