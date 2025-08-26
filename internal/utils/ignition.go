@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -18,10 +19,13 @@ func GenerateIgnitionConfig(ctx context.Context, client client.Client) (string, 
 		return "", fmt.Errorf("failed to get cluster API server internal URL: %w", err)
 	}
 	apiServerInternalURL = strings.TrimPrefix(apiServerInternalURL, "https://")
+	apiServerInternalURL, _, _ = strings.Cut(apiServerInternalURL, ":")
+
 	machineConfigCA, err := GetMachineConfigCA(ctx, client)
 	if err != nil {
 		return "", fmt.Errorf("failed to get machine config CA: %w", err)
 	}
+	machineConfigCAB64 := base64.StdEncoding.EncodeToString([]byte(machineConfigCA))
 
 	ignitionConfig := &types.Config{
 		Systemd: types.Systemd{
@@ -54,7 +58,7 @@ func GenerateIgnitionConfig(ctx context.Context, client client.Client) (string, 
 				TLS: types.TLS{
 					CertificateAuthorities: []types.Resource{
 						{
-							Source: swag.String(fmt.Sprintf("data:text/plain;charset=utf-9;base64,%s", machineConfigCA)), //TODO: confirm this is base64 encoded already
+							Source: swag.String(fmt.Sprintf("data:text/plain;charset=utf-8;base64,%s", machineConfigCAB64)), //TODO: confirm this is base64 encoded already
 						},
 					},
 				},
@@ -62,7 +66,7 @@ func GenerateIgnitionConfig(ctx context.Context, client client.Client) (string, 
 			Config: types.IgnitionConfig{
 				Merge: []types.Resource{
 					{
-						Source: swag.String(fmt.Sprintf("https://%s/config/master/worker", apiServerInternalURL)),
+						Source: swag.String(fmt.Sprintf("https://%s:22623/config/worker", apiServerInternalURL)),
 					},
 				},
 			},
