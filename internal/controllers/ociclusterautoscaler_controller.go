@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-logr/logr"
 	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
 	"github.com/openshift/oci-capi-operator/internal/components"
 	"github.com/openshift/oci-capi-operator/internal/components/autoscaler"
@@ -361,119 +360,8 @@ func (r *OCIClusterAutoscalerReconciler) cleanup(ctx context.Context, instance *
 		return err
 	}
 	logger.Info("CAPI components removed")
-	/* 	// Define the resource types we need to clean up based on RBAC rules and SetupWithManager
-	   	gvks := []struct {
-	   		list     client.ObjectList
-	   		resource string
-	   	}{
-	   		{&corev1.NamespaceList{}, "namespaces"},
-	   		{&corev1.ServiceAccountList{}, "serviceaccounts"},
-	   		{&corev1.SecretList{}, "secrets"},
-	   		{&corev1.ConfigMapList{}, "configmaps"},
-	   		{&corev1.ServiceList{}, "services"},
-	   		{&appsv1.DeploymentList{}, "deployments"},
-	   		{&rbacv1.ClusterRoleList{}, "clusterroles"},
-	   		{&rbacv1.ClusterRoleBindingList{}, "clusterrolebindings"},
-	   		{&rbacv1.RoleList{}, "roles"},
-	   		{&rbacv1.RoleBindingList{}, "rolebindings"},
-	   		{&admissionregistrationv1.ValidatingWebhookConfigurationList{}, "validatingwebhookconfigurations"},
-	   		{&admissionregistrationv1.MutatingWebhookConfigurationList{}, "mutatingwebhookconfigurations"},
-	   		{&securityv1.SecurityContextConstraintsList{}, "securitycontextconstraints"},
-	   	}
-
-	   	// Label selector for resources managed by this controller
-	   	labelSelector := labels.SelectorFromSet(map[string]string{ManagedByLabel: instance.Name})
-
-	   	// Namespaces to check
-	   	namespaces := []string{CAPISystemNamespace, CAPOCISystemNamespace}
-
-	   	// Delete resources in each namespace
-	   	for _, ns := range namespaces {
-	   		logger.Info("Cleaning up resources in namespace", "namespace", ns)
-
-	   		for _, gvk := range gvks {
-	   			logger.Info("Listing resources", "resource", gvk.resource, "namespace", ns)
-
-	   			// Skip namespace-scoped list for cluster-scoped resources
-	   			if gvk.resource == "clusterroles" ||
-	   				gvk.resource == "clusterrolebindings" ||
-	   				gvk.resource == "validatingwebhookconfigurations" ||
-	   				gvk.resource == "mutatingwebhookconfigurations" ||
-	   				gvk.resource == "securitycontextconstraints" {
-	   				continue
-	   			}
-
-	   			// List resources
-	   			err := r.List(ctx, gvk.list, &client.ListOptions{
-	   				Namespace:     ns,
-	   				LabelSelector: labelSelector,
-	   			})
-	   			if err != nil {
-	   				logger.Error(err, "Failed to list resources", "resource", gvk.resource, "namespace", ns)
-	   				return err
-	   			}
-
-	   			// Delete each resource
-	   			if err := deleteResourceList(ctx, r.Client, gvk.list, logger); err != nil {
-	   				return err
-	   			}
-	   		}
-	   	}
-
-	   	// Delete cluster-scoped resources
-	   	logger.Info("Cleaning up cluster-scoped resources")
-	   	for _, gvk := range gvks {
-	   		// Only process cluster-scoped resources
-	   		if gvk.resource != "clusterroles" &&
-	   			gvk.resource != "clusterrolebindings" &&
-	   			gvk.resource != "validatingwebhookconfigurations" &&
-	   			gvk.resource != "mutatingwebhookconfigurations" &&
-	   			gvk.resource != "securitycontextconstraints" {
-	   			continue
-	   		}
-
-	   		logger.Info("Listing cluster-scoped resources", "resource", gvk.resource)
-
-	   		// List resources
-	   		err := r.List(ctx, gvk.list, &client.ListOptions{
-	   			LabelSelector: labelSelector,
-	   		})
-	   		if err != nil {
-	   			logger.Error(err, "Failed to list cluster-scoped resources", "resource", gvk.resource)
-	   			return err
-	   		}
-
-	   		// Delete each resource
-	   		if err := deleteResourceList(ctx, r.Client, gvk.list, logger); err != nil {
-	   			return err
-	   		}
-	   	} */
-
-	// Remove the Autoscaler Helm chart
 
 	logger.Info("Cleanup completed successfully")
-	return nil
-}
-
-// deleteResourceList is a helper function to delete all resources in a list
-func deleteResourceList(ctx context.Context, c client.Client, list client.ObjectList, logger logr.Logger) error {
-	items, err := meta.ExtractList(list)
-	if err != nil {
-		return err
-	}
-
-	for _, item := range items {
-		obj, ok := item.(client.Object)
-		if !ok {
-			continue
-		}
-
-		logger.Info("Deleting resource", "name", obj.GetName(), "namespace", obj.GetNamespace(), "kind", obj.GetObjectKind().GroupVersionKind().Kind)
-		if err := c.Delete(ctx, obj); err != nil && !errors.IsNotFound(err) {
-			logger.Error(err, "Failed to delete resource", "name", obj.GetName(), "namespace", obj.GetNamespace())
-			return err
-		}
-	}
 	return nil
 }
 
@@ -533,23 +421,20 @@ func (r *OCIClusterAutoscalerReconciler) SetupWithManager(mgr ctrl.Manager) erro
 func reconcileComponents(ctx context.Context, client client.Client, components *components.Component) error {
 	allErrs := []error{}
 	logger := log.FromContext(ctx)
-	//logger.Info("Reconciling components", "component", components.Name, "subcomponents", components.Subcomponents)
 	for _, component := range components.Subcomponents {
-		//logger.Info("Reconciling subcomponent", "subcomponent", component.Name)
-
 		_, err := controllerutil.CreateOrPatch(ctx, client, component.Object, component.MutateFn)
 		if err != nil {
 			logger.Error(err, "Failed to reconcile component", "component", component.Name)
 			allErrs = append(allErrs, err)
 			continue
 		}
-		//fmt.Printf("Component %s operation: %s\n", component.Name, op)
 	}
 	if len(allErrs) > 0 {
 		return fmt.Errorf("failed to reconcile components: %v", allErrs)
 	}
 	return nil
 }
+
 func reconcileClusterctlComponents(ctx context.Context, client client.Client, components []unstructured.Unstructured) error {
 	for i := range components {
 		component := components[i].DeepCopy()
