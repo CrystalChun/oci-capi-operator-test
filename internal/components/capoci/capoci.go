@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type CAPOCICredentials struct {
@@ -58,9 +59,9 @@ func GetClusterctlComponents(ctx context.Context, deploymentName string, service
 	return reconcileComponents, nil
 }
 
-func GetComponents(capociNamespace string, instance *capiv1alpha1.OCIClusterAutoscaler) *components.Component {
+func GetComponents(capociNamespace string, instance *capiv1alpha1.OCIClusterAutoscaler, auth *CAPOCICredentials) *components.Component {
 	namespace, namespaceMutateFn := Namespace(capociNamespace, instance)
-	authConfigSecret, authConfigSecretMutateFn := AuthConfigSecret(instance, capociNamespace, &CAPOCICredentials{})
+	authConfigSecret, authConfigSecretMutateFn := AuthConfigSecret(instance, capociNamespace, auth)
 	return &components.Component{
 		Name: "CAPOCI",
 		Subcomponents: components.SubcomponentList{
@@ -70,7 +71,7 @@ func GetComponents(capociNamespace string, instance *capiv1alpha1.OCIClusterAuto
 	}
 }
 
-func Namespace(capociNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler) (client.Object, func() error) {
+func Namespace(capociNamespace string, autoscaler *capiv1alpha1.OCIClusterAutoscaler) (client.Object, controllerutil.MutateFn) {
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: capociNamespace,
@@ -83,7 +84,7 @@ func Namespace(capociNamespace string, autoscaler *capiv1alpha1.OCIClusterAutosc
 	return namespace, mutateFn
 }
 
-func AuthConfigSecret(autoscaler *capiv1alpha1.OCIClusterAutoscaler, capociNamespace string, auth *CAPOCICredentials) (client.Object, func() error) {
+func AuthConfigSecret(autoscaler *capiv1alpha1.OCIClusterAutoscaler, capociNamespace string, auth *CAPOCICredentials) (client.Object, controllerutil.MutateFn) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "capoci-auth-config",
