@@ -327,6 +327,10 @@ catalog-push: ## Push a catalog image.
 apply:
 	$(KUSTOMIZE) build config/samples | $(KUBECTL) apply -f - 
 
+.PHONY: remove-cr
+remove-cr:
+	$(KUSTOMIZE) build config/samples | $(KUBECTL) delete --ignore-not-found=true --wait=false -f -
+
 .PHONY: remove
 remove:
 	$(KUBECTL) delete validatingwebhookconfiguration capi-validating-webhook-configuration --wait=false --ignore-not-found=true
@@ -335,5 +339,19 @@ remove:
 	$(KUBECTL) delete mutatingwebhookconfiguration capoci-mutating-webhook-configuration --wait=false --ignore-not-found=true
 	$(KUBECTL) delete ns capi-system --wait=false --ignore-not-found=true
 	$(KUBECTL) delete ns cluster-api-provider-oci-system --wait=false --ignore-not-found=true
+	$(KUBECTL) delete cluster -n capi-system --wait=false --ignore-not-found=true --all
+	$(KUBECTL) patch -p '[{"op":"remove","path":"/metadata/finalizers"}]' cluster $(shell $(KUBECTL) get cluster -n capi-system --no-headers | awk '{print $$1}') -n capi-system --type=json || true
+	$(KUBECTL) delete ocicluster -n capi-system --wait=false --ignore-not-found=true --all
+	$(KUBECTL) patch -p '[{"op":"remove","path":"/metadata/finalizers"}]' ocicluster $(shell $(KUBECTL) get ocicluster -n capi-system --no-headers | awk '{print $$1}') -n capi-system --type=json || true
+	$(KUBECTL) delete ocimachinetemplate -n capi-system --wait=false --ignore-not-found=true --all
+	$(KUBECTL) patch -p '[{"op":"remove","path":"/metadata/finalizers"}]' ocimachinetemplate $(shell $(KUBECTL) get ocimachinetemplate -n capi-system --no-headers | awk '{print $$1}') -n capi-system --type=json || true
+	$(KUBECTL) delete machinedeployment -n capi-system --wait=false --ignore-not-found=true --all
+	$(KUBECTL) patch -p '[{"op":"remove","path":"/metadata/finalizers"}]' machinedeployment $(shell $(KUBECTL) get machinedeployment -n capi-system --no-headers | awk '{print $$1}') -n capi-system --type=json || true
+	$(KUBECTL) delete machineset -n capi-system --wait=false --ignore-not-found=true --all
+	$(KUBECTL) patch -p '[{"op":"remove","path":"/metadata/finalizers"}]' machineset $(shell $(KUBECTL) get machineset -n capi-system --no-headers | awk '{print $$1}') -n capi-system --type=json || true
+	$(KUBECTL) delete machine -n capi-system --wait=false --ignore-not-found=true --all
+	$(KUBECTL) patch -p '[{"op":"remove","path":"/metadata/finalizers"}]' machine $(shell $(KUBECTL) get machine -n capi-system --no-headers | awk '{print $$1}') -n capi-system --type=json || true
+	$(KUBECTL) delete ocimachine -n capi-system --wait=false --ignore-not-found=true --all
+	$(KUBECTL) patch -p '[{"op":"remove","path":"/metadata/finalizers"}]' ocimachine $(shell $(KUBECTL) get ocimachine -n capi-system --no-headers | awk '{print $$1}') -n capi-system --type=json || true
+	$(KUSTOMIZE) build config/samples | $(KUBECTL) delete --ignore-not-found=true --wait=false -f -
 	$(KUBECTL) patch -p '[{"op":"remove","path":"/metadata/finalizers"}]' ociclusterautoscalers ociclusterautoscaler-sample --type=json
-	$(KUSTOMIZE) build config/samples | $(KUBECTL) delete --ignore-not-found=$(INF) -f -
