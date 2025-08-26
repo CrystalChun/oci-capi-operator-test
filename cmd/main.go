@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	certificatesv1client "k8s.io/client-go/kubernetes/typed/certificates/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -104,10 +105,8 @@ type Options struct {
 }
 
 type RunOptions struct {
-	MetricsAddr          string
 	EnableLeaderElection bool
 	ProbeAddr            string
-	SecureMetrics        bool
 	EnableHTTP2          bool
 }
 
@@ -133,22 +132,15 @@ func run(ctx context.Context, options Options, setupLog *logr.Logger) error {
 		TLSOpts: tlsOpts,
 	})
 
-	// Metrics endpoint is enabled in 'config/default/kustomization.yaml'. The Metrics options configure the server.
-	// More info:
-	// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.0/pkg/metrics/server
-	// - https://book.kubebuilder.io/reference/metrics.html
-	metricsOpts := ctrl.Options{
+	mgrOpts := ctrl.Options{
 		Scheme:                 scheme,
 		WebhookServer:          webhookServer,
 		HealthProbeBindAddress: options.RunOptions.ProbeAddr,
 		LeaderElection:         options.RunOptions.EnableLeaderElection,
 		LeaderElectionID:       "1af242a3.openshift.io",
 	}
-	if options.RunOptions.MetricsAddr != "0" {
-		metricsOpts.HealthProbeBindAddress = options.RunOptions.MetricsAddr
-	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), metricsOpts)
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), mgrOpts)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		return err
@@ -170,9 +162,16 @@ func run(ctx context.Context, options Options, setupLog *logr.Logger) error {
 		return err
 	}
 
+	csrClient, err := certificatesv1client.NewForConfig(mgr.GetConfig())
+	if err != nil {
+		setupLog.Error(err, "Failed to create CSR client")
+		return err
+	}
+
 	if err = (&controllers.CertificateApprovalReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		CSRClient: *csrClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CertificateApproval")
 		return err
@@ -203,17 +202,12 @@ func NewRunCommand() *cobra.Command {
 	}
 
 	options := Options{}
-
-	runCmd.Flags().StringVar(&options.RunOptions.MetricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
-		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
 	runCmd.Flags().StringVar(&options.RunOptions.ProbeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	runCmd.Flags().BoolVar(&options.RunOptions.EnableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	runCmd.Flags().BoolVar(&options.RunOptions.SecureMetrics, "metrics-secure", true,
-		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
 	runCmd.Flags().BoolVar(&options.RunOptions.EnableHTTP2, "enable-http2", false,
-		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
+		"If set, HTTP/2 will be enabled for the webhook servers")
 
 	runCmd.Run = func(cmd *cobra.Command, args []string) {
 		ctx, cancel := context.WithCancel(cmd.Context())
