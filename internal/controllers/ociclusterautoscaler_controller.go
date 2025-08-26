@@ -21,7 +21,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	capiv1alpha1 "github.com/openshift/oci-capi-operator/api/v1alpha1"
+	"github.com/openshift/oci-capi-operator/internal/components"
+	"github.com/openshift/oci-capi-operator/internal/components/autoscaler"
 	"github.com/openshift/oci-capi-operator/internal/components/capi"
 	"github.com/openshift/oci-capi-operator/internal/components/capoci"
 	enableautoscaler "github.com/openshift/oci-capi-operator/internal/components/enable_autoscaler"
@@ -29,6 +32,7 @@ import (
 	"github.com/openshift/oci-capi-operator/internal/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/rest"
 
 	securityv1 "github.com/openshift/api/security/v1"
 
@@ -40,7 +44,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -49,6 +52,7 @@ import (
 
 // OCIClusterAutoscalerReconciler reconciles a OCIClusterAutoscaler object
 type OCIClusterAutoscalerReconciler struct {
+	RestConfig *rest.Config
 	client.Client
 	Scheme            *runtime.Scheme
 	CAPOCICredentials capoci.CAPOCICredentials
@@ -94,7 +98,6 @@ type OCIClusterAutoscalerReconciler struct {
 // +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddressclaims;ipaddresses,verbs=get;list;patch;update;watch
 // +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddressclaims/status,verbs=patch;update
 // +kubebuilder:rbac:groups=runtime.cluster.x-k8s.io,resources=extensionconfigs;extensionconfigs/status,verbs=get;list;patch;update;watch
-// +kubebuilder:rbac:groups=certificates.k8s.io,resources=certificatesigningrequests,verbs=get;list;update;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=ocimachines,verbs=get;list;watch
 // +kubebuilder:rbac:groups=config.openshift.io,resources=infrastructures,verbs=get;list;watch
 
@@ -180,54 +183,57 @@ func (r *OCIClusterAutoscalerReconciler) reconcileOCICapiStack(ctx context.Conte
 	logger := log.FromContext(ctx)
 
 	// Validate the autoscaler spec
-	if err := validate(instance); err != nil {
+	if err := validate(instance, r.AutoScalingConfig); err != nil {
 		logger.Error(err, "Invalid autoscaler spec")
 		return ctrl.Result{}, err
 	}
 
-	err := ensureNamespaces(ctx, r.Client, instance, r.Scheme)
+	// Step 1: Reconcile CAPI components
+	capiComponent := capi.GetComponents(CAPISystemNamespace, CAPOCISystemNamespace, CAPIServiceAccountName, CAPOCIServiceAccountName, instance)
+	err := reconcileComponents(ctx, r.Client, capiComponent)
 	if err != nil {
-		logger.Error(err, "Failed to ensure namespaces exist")
+		logger.Error(err, "Failed to reconcile CAPI components")
+		return ctrl.Result{}, err
+	}
+	logger.Info("CAPI components created")
+
+	capiComponents, err := capi.GetClusterctlComponents(ctx, CAPIDeploymentName, CAPIServiceAccountName, CAPISystemNamespace, instance, CAPIWebhookServiceName, r.Scheme)
+	if err != nil {
+		logger.Error(err, "Failed to create CAPI components")
 		return ctrl.Result{}, err
 	}
 
-	// Step 1: Reconcile CAPI components
-	capiComponents, err := capi.NewComponent(ctx, CAPISystemNamespace, instance, CAPIWebhookServiceName, r.Scheme)
+	err = reconcileClusterctlComponents(ctx, r.Client, capiComponents)
 	if err != nil {
-		logger.Error(err, "Failed to create CAPI components")
-		return ctrl.Result{RequeueAfter: time.Second * 20}, nil
+		logger.Error(err, "Failed to reconcile CAPI clusterctl components")
+		return ctrl.Result{}, err
 	}
+	logger.Info("CAPI Clusterctl components created")
 
-	err = reconcileComponents(ctx, r.Client, capiComponents)
-	if err != nil {
-		logger.Error(err, "Failed to reconcile CAPI components")
-		return ctrl.Result{RequeueAfter: time.Second * 20}, nil
-	}
-	logger.Info("CAPI components created", "components", capiComponents)
-
-	capociAuth, mutateFn := capoci.AuthConfigSecret(instance, CAPOCISystemNamespace, &r.CAPOCICredentials)
-	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, capociAuth, mutateFn)
-	if err != nil {
-		logger.Error(err, "Failed to create CAPOCI auth config")
-		return ctrl.Result{RequeueAfter: time.Second * 20}, nil
-	}
-
-	capociComponents, err := capoci.GetComponents(ctx, CAPOCISystemNamespace, instance, CAPOCIWebhookServiceName, r.Scheme)
-	if err != nil {
-		logger.Error(err, "Failed to create CAPOCI components")
-		return ctrl.Result{RequeueAfter: time.Second * 20}, nil
-	}
-
-	err = reconcileComponents(ctx, r.Client, capociComponents)
+	// Step 2: Reconcile CAPOCI components
+	capociComponent := capoci.GetComponents(CAPOCISystemNamespace, instance, &r.CAPOCICredentials)
+	err = reconcileComponents(ctx, r.Client, capociComponent)
 	if err != nil {
 		logger.Error(err, "Failed to reconcile CAPOCI components")
 		return ctrl.Result{RequeueAfter: time.Second * 20}, nil
 	}
-	logger.Info("CAPOCI components created", "components", capociComponents)
+	logger.Info("CAPOCI components created")
+
+	capociComponents, err := capoci.GetClusterctlComponents(ctx, CAPOCIDeploymentName, CAPOCIServiceAccountName, CAPOCISystemNamespace, instance, CAPOCIWebhookServiceName, r.Scheme)
+	if err != nil {
+		logger.Error(err, "Failed to create CAPOCI components")
+		return ctrl.Result{}, err
+	}
+	err = reconcileClusterctlComponents(ctx, r.Client, capociComponents)
+	if err != nil {
+		logger.Error(err, "Failed to reconcile CAPOCI clusterctl components")
+		return ctrl.Result{}, err
+	}
+	logger.Info("CAPOCI clusterctl components created")
 
 	// Step 3: Check if CAPI is already deployed
-	capiInstalled, err := r.checkCAPIInstallation(ctx)
-	if err != nil {
+	capiInstalled, err := r.checkCAPIInstallation(ctx, instance)
+	if err != nil && !errors.IsNotFound(err) {
 		logger.Info("Failed to check CAPI installation", "error", err)
 		return ctrl.Result{RequeueAfter: time.Second * 20}, nil
 	}
@@ -238,103 +244,205 @@ func (r *OCIClusterAutoscalerReconciler) reconcileOCICapiStack(ctx context.Conte
 		return ctrl.Result{RequeueAfter: time.Second * 20}, nil
 	}
 	logger.Info("CAPI is installed")
-	return ctrl.Result{}, nil
-	/*
-		// Step 4: Reconcile Cluster Autoscaler components
-		autoscalerComponent := autoscaler.NewComponent(CAPISystemNamespace, ClusterAutoscalerImage, instance, r.Scheme)
-		err = r.reconcileComponent(ctx, autoscalerComponent)
-		if err != nil {
-			logger.Info("Failed to reconcile Cluster Autoscaler components", "error", err)
-			return ctrl.Result{RequeueAfter: time.Second * 20}, nil
-		}
 
-		instance.Status.ClusterAutoscalerDeployed = true
-		return ctrl.Result{RequeueAfter: time.Minute * 10}, nil
-	*/
+	// Step 4: Reconcile Cluster Autoscaler components
+	autoscalerDeploymentValues := getAutoscalerDeploymentValues(instance)
+
+	autoscalerComponents := autoscaler.GetComponents(&autoscalerDeploymentValues, instance, r.Scheme)
+
+	err = reconcileComponents(ctx, r.Client, autoscalerComponents)
+	if err != nil {
+		logger.Error(err, "Failed to reconcile autoscaler components")
+		return ctrl.Result{}, err
+	}
+	logger.Info("Autoscaler components created", "components", autoscalerComponents)
+
+	// Install the autoscaler Helm chart
+	err = autoscaler.InstallAutoscaler(instance, &autoscalerDeploymentValues, r.RestConfig)
+	if err != nil {
+		logger.Error(err, "Failed to install autoscaler Helm chart")
+		return ctrl.Result{}, err
+	}
+	logger.Info("Helm chart installed")
+	instance.Status.ClusterAutoscalerDeployed = true
+
+	// Step 5: Reconcile Enable Autoscaler components
+	clusterName, err := utils.GetClusterName(ctx, r.Client)
+	if err != nil {
+		logger.Error(err, "Failed to get cluster name")
+		return ctrl.Result{}, err
+	}
+
+	autoscalerConfig, err := enableautoscaler.SetAutoScalingConfig(ctx, r.Client, instance, r.AutoScalingConfig)
+	if err != nil {
+		logger.Error(err, "Failed to set autoscaler config")
+		return ctrl.Result{}, err
+	}
+
+	enableAutoscalerComponent := enableautoscaler.GetComponents(ctx, r.Client, CAPISystemNamespace, clusterName, instance, autoscalerConfig)
+	err = reconcileComponents(ctx, r.Client, enableAutoscalerComponent)
+	if err != nil {
+		logger.Error(err, "Failed to reconcile Enable Autoscaler components")
+		return ctrl.Result{}, err
+	}
+	logger.Info("Enable Autoscaler components created")
+	return ctrl.Result{}, nil
 }
 
 func (r *OCIClusterAutoscalerReconciler) cleanup(ctx context.Context, instance *capiv1alpha1.OCIClusterAutoscaler) error {
 	logger := log.FromContext(ctx)
-
-	logger.Info("Cleaning up resources")
-	// Query resources by label
-	managedByLabel := "capi.openshift.io/managed-by"
-
-	resources := &unstructured.UnstructuredList{}
-	err := r.List(ctx, resources, &client.ListOptions{
-		LabelSelector: labels.SelectorFromSet(map[string]string{managedByLabel: instance.Name}),
-		Namespace:     CAPISystemNamespace,
-	})
+	logger.Info("Starting cleanup of all resources")
+	clusterName, err := utils.GetClusterName(ctx, r.Client)
 	if err != nil {
-		logger.Error(err, "Failed to list resources in namespace", "namespace", CAPISystemNamespace)
+		logger.Error(err, "Failed to get cluster name")
 		return err
 	}
-	logger.Info("Found resources", "resources", resources.Items)
-	for _, resource := range resources.Items {
-		logger.Info("Deleting resource", "resource", resource.GetName())
-		err := r.Delete(ctx, &resource)
+	autoscalerComponents := enableautoscaler.GetComponents(ctx, r.Client, CAPISystemNamespace, clusterName, instance, r.AutoScalingConfig)
+
+	for _, component := range autoscalerComponents.Subcomponents {
+		logger.Info("Removing enable autoscaler component", "component", component.Name, "kind", component.Object.GetObjectKind().GroupVersionKind().Kind)
+		err := r.Client.Delete(ctx, component.Object)
 		if err != nil && !errors.IsNotFound(err) {
-			logger.Error(err, "Failed to delete resource", "resource", resource.GetName())
+			logger.Error(err, "Failed to remove enable autoscaler component", "component", component.Name, "kind", component.Object.GetObjectKind().GroupVersionKind().Kind)
+			return err
+		}
+	}
+	logger.Info("Enable autoscaler components removed")
+
+	// Define the resource types we need to clean up based on RBAC rules and SetupWithManager
+	gvks := []struct {
+		list     client.ObjectList
+		resource string
+	}{
+		{&corev1.NamespaceList{}, "namespaces"},
+		{&corev1.ServiceAccountList{}, "serviceaccounts"},
+		{&corev1.SecretList{}, "secrets"},
+		{&corev1.ConfigMapList{}, "configmaps"},
+		{&corev1.ServiceList{}, "services"},
+		{&appsv1.DeploymentList{}, "deployments"},
+		{&rbacv1.ClusterRoleList{}, "clusterroles"},
+		{&rbacv1.ClusterRoleBindingList{}, "clusterrolebindings"},
+		{&rbacv1.RoleList{}, "roles"},
+		{&rbacv1.RoleBindingList{}, "rolebindings"},
+		{&admissionregistrationv1.ValidatingWebhookConfigurationList{}, "validatingwebhookconfigurations"},
+		{&admissionregistrationv1.MutatingWebhookConfigurationList{}, "mutatingwebhookconfigurations"},
+		{&securityv1.SecurityContextConstraintsList{}, "securitycontextconstraints"},
+	}
+
+	// Label selector for resources managed by this controller
+	labelSelector := labels.SelectorFromSet(map[string]string{ManagedByLabel: instance.Name})
+
+	// Namespaces to check
+	namespaces := []string{CAPISystemNamespace, CAPOCISystemNamespace}
+
+	// Delete resources in each namespace
+	for _, ns := range namespaces {
+		logger.Info("Cleaning up resources in namespace", "namespace", ns)
+
+		for _, gvk := range gvks {
+			logger.Info("Listing resources", "resource", gvk.resource, "namespace", ns)
+
+			// Skip namespace-scoped list for cluster-scoped resources
+			if gvk.resource == "clusterroles" ||
+				gvk.resource == "clusterrolebindings" ||
+				gvk.resource == "validatingwebhookconfigurations" ||
+				gvk.resource == "mutatingwebhookconfigurations" ||
+				gvk.resource == "securitycontextconstraints" {
+				continue
+			}
+
+			// List resources
+			err := r.List(ctx, gvk.list, &client.ListOptions{
+				Namespace:     ns,
+				LabelSelector: labelSelector,
+			})
+			if err != nil {
+				logger.Error(err, "Failed to list resources", "resource", gvk.resource, "namespace", ns)
+				return err
+			}
+
+			// Delete each resource
+			if err := deleteResourceList(ctx, r.Client, gvk.list, logger); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Delete cluster-scoped resources
+	logger.Info("Cleaning up cluster-scoped resources")
+	for _, gvk := range gvks {
+		// Only process cluster-scoped resources
+		if gvk.resource != "clusterroles" &&
+			gvk.resource != "clusterrolebindings" &&
+			gvk.resource != "validatingwebhookconfigurations" &&
+			gvk.resource != "mutatingwebhookconfigurations" &&
+			gvk.resource != "securitycontextconstraints" {
+			continue
+		}
+
+		logger.Info("Listing cluster-scoped resources", "resource", gvk.resource)
+
+		// List resources
+		err := r.List(ctx, gvk.list, &client.ListOptions{
+			LabelSelector: labelSelector,
+		})
+		if err != nil {
+			logger.Error(err, "Failed to list cluster-scoped resources", "resource", gvk.resource)
+			return err
+		}
+
+		// Delete each resource
+		if err := deleteResourceList(ctx, r.Client, gvk.list, logger); err != nil {
 			return err
 		}
 	}
 
-	resources2 := &unstructured.UnstructuredList{}
-	err = r.List(ctx, resources2, &client.ListOptions{
-		LabelSelector: labels.SelectorFromSet(map[string]string{managedByLabel: instance.Name}),
-		Namespace:     CAPOCISystemNamespace,
-	})
-	if err != nil {
-		logger.Error(err, "Failed to list resources in namespace", "namespace", CAPOCISystemNamespace)
-		return err
-	}
-	logger.Info("Found resources", "resources", resources2.Items)
-	for _, resource := range resources2.Items {
-		logger.Info("Deleting resource", "resource", resource.GetName())
-		err := r.Delete(ctx, &resource)
-		if err != nil && !errors.IsNotFound(err) {
-			logger.Error(err, "Failed to delete resource", "resource", resource.GetName())
-			return err
-		}
-	}
+	// Remove the Autoscaler Helm chart
 
-	// Cleanup resources created by the operator
-	// This would include removing deployments, RBAC, secrets, etc.
-	// Step 4: Reconcile Cluster Autoscaler components
-	/* 	autoscalerComponent := autoscaler.NewComponent(CAPISystemNamespace, ClusterAutoscalerImage, instance, r.Scheme)
-	   	err := r.removeComponent(ctx, autoscalerComponent)
-	   	if err != nil {
-
-	   		return err
-	   	}
-	   	// Step 2: Reconcile CAPOCI components
-	   	capociComponent := capoci.NewComponent(CAPOCISystemNamespace, instance, r.Scheme)
-	   	err = r.removeComponent(ctx, capociComponent)
-	   	if err != nil {
-
-	   		return err
-	   	} */
-
-	/* 	// Step 1: Reconcile CAPI components
-	   	capiComponent := capi.NewComponent(CAPISystemNamespace, instance, r.Scheme)
-	   	err = r.removeComponent(ctx, capiComponent)
-	   	if err != nil {
-
-	   		return err
-	   	} */
-
+	logger.Info("Cleanup completed successfully")
 	return nil
 }
 
-func (r *OCIClusterAutoscalerReconciler) checkCAPIInstallation(ctx context.Context) (bool, error) {
+// deleteResourceList is a helper function to delete all resources in a list
+func deleteResourceList(ctx context.Context, c client.Client, list client.ObjectList, logger logr.Logger) error {
+	items, err := meta.ExtractList(list)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range items {
+		obj, ok := item.(client.Object)
+		if !ok {
+			continue
+		}
+
+		logger.Info("Deleting resource", "name", obj.GetName(), "namespace", obj.GetNamespace(), "kind", obj.GetObjectKind().GroupVersionKind().Kind)
+		if err := c.Delete(ctx, obj); err != nil && !errors.IsNotFound(err) {
+			logger.Error(err, "Failed to delete resource", "name", obj.GetName(), "namespace", obj.GetNamespace())
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *OCIClusterAutoscalerReconciler) checkCAPIInstallation(ctx context.Context, instance *capiv1alpha1.OCIClusterAutoscaler) (bool, error) {
 	// Check if CAPI controller manager is deployed
-	capiDeployment := &appsv1.Deployment{}
-	err := r.Get(ctx, types.NamespacedName{Name: "cluster-api-controller", Namespace: CAPISystemNamespace}, capiDeployment)
+	capiDeployments := &appsv1.DeploymentList{}
+	err := r.List(ctx, capiDeployments, &client.ListOptions{
+		Namespace: CAPISystemNamespace,
+		LabelSelector: labels.SelectorFromSet(map[string]string{
+			ManagedByLabel: instance.Name,
+		}),
+	})
 	if err != nil {
 		return false, err
 	}
 
-	condition := utils.GetDeploymentCondition(capiDeployment.Status.Conditions, appsv1.DeploymentAvailable)
+	if len(capiDeployments.Items) == 0 {
+		return false, fmt.Errorf("CAPI controller manager is not deployed")
+	}
+
+	condition := utils.GetDeploymentCondition(capiDeployments.Items[0].Status.Conditions, appsv1.DeploymentAvailable)
 	if condition == nil {
 		return false, fmt.Errorf("CAPI controller manager is not available")
 	}
@@ -346,22 +454,10 @@ func (r *OCIClusterAutoscalerReconciler) checkCAPIInstallation(ctx context.Conte
 	return true, nil
 }
 
-func validate(instance *capiv1alpha1.OCIClusterAutoscaler) error {
-	if err := validateAutoscalerSpec(&instance.Spec); err != nil {
-		return fmt.Errorf("invalid autoscaler spec: %w", err)
+func validate(instance *capiv1alpha1.OCIClusterAutoscaler, config enableautoscaler.Config) error {
+	if err := enableautoscaler.ValidateMinMaxNodes(instance, config); err != nil {
+		return fmt.Errorf("invalid Min/Max nodes set in either the autoscaler spec or the config: %w", err)
 	}
-	return nil
-}
-
-func validateAutoscalerSpec(spec *capiv1alpha1.OCIClusterAutoscalerSpec) error {
-	if spec.Autoscaling.MinNodes > spec.Autoscaling.MaxNodes {
-		return fmt.Errorf("minNodes [%d] must be less than or equal to maxNodes [%d]", spec.Autoscaling.MinNodes, spec.Autoscaling.MaxNodes)
-	}
-
-	if spec.Autoscaling.Shape == "" {
-		return fmt.Errorf("shape is required")
-	}
-
 	return nil
 }
 
@@ -382,10 +478,30 @@ func (r *OCIClusterAutoscalerReconciler) SetupWithManager(mgr ctrl.Manager) erro
 		Complete(r)
 }
 
-func reconcileComponents(ctx context.Context, client client.Client, components []unstructured.Unstructured) error {
+func reconcileComponents(ctx context.Context, client client.Client, components *components.Component) error {
+	allErrs := []error{}
+	logger := log.FromContext(ctx)
+	//logger.Info("Reconciling components", "component", components.Name, "subcomponents", components.Subcomponents)
+	for _, component := range components.Subcomponents {
+		//logger.Info("Reconciling subcomponent", "subcomponent", component.Name)
+
+		_, err := controllerutil.CreateOrPatch(ctx, client, component.Object, component.MutateFn)
+		if err != nil {
+			logger.Error(err, "Failed to reconcile component", "component", component.Name)
+			allErrs = append(allErrs, err)
+			continue
+		}
+		//fmt.Printf("Component %s operation: %s\n", component.Name, op)
+	}
+	if len(allErrs) > 0 {
+		return fmt.Errorf("failed to reconcile components: %v", allErrs)
+	}
+	return nil
+}
+func reconcileClusterctlComponents(ctx context.Context, client client.Client, components []unstructured.Unstructured) error {
 	for i := range components {
 		component := components[i].DeepCopy()
-		op, err := controllerutil.CreateOrUpdate(ctx, client, component, func() error {
+		_, err := controllerutil.CreateOrPatch(ctx, client, component, func() error {
 			// Get the current object to update
 			current := component.DeepCopy()
 
@@ -411,24 +527,21 @@ func reconcileComponents(ctx context.Context, client client.Client, components [
 		if err != nil && !errors.IsAlreadyExists(err) {
 			return err
 		}
-		fmt.Println("Operation:", op)
+		//fmt.Printf("Component %s operation: %s\n", component.GetName(), op)
 	}
 	return nil
 }
 
-// ensureNamespaces ensures that the CAPI and CAPOCI namespaces exist
-func ensureNamespaces(ctx context.Context, client client.Client, instance *capiv1alpha1.OCIClusterAutoscaler, scheme *runtime.Scheme) error {
-	capiNamespace, capiNamespaceMutateFn := capi.CAPINamespace(CAPISystemNamespace, instance, scheme)
-
-	_, err := controllerutil.CreateOrUpdate(ctx, client, capiNamespace, capiNamespaceMutateFn)
-	if err != nil {
-		return err
-	}
-
-	capociNamespace, capociNamespaceMutateFn := capoci.Namespace(CAPOCISystemNamespace, instance, scheme)
-	_, err = controllerutil.CreateOrUpdate(ctx, client, capociNamespace, capociNamespaceMutateFn)
-	if err != nil {
-		return err
-	}
-	return nil
+func getAutoscalerDeploymentValues(instance *capiv1alpha1.OCIClusterAutoscaler) autoscaler.AutoscalerDeploymentValues {
+	return autoscaler.GetAutoscalerDeploymentValues(autoscaler.AutoscalerDeploymentValues{
+		Name:                 AutoscalerDeploymentName,
+		Namespace:            CAPISystemNamespace,
+		CloudProvider:        AutoScalerCloudProvider,
+		ServiceAccountName:   AutoscalerDeploymentName,
+		RepositoryURL:        AutoscalerRepoURL,
+		Chart:                AutoscalerChartName,
+		Version:              "9.40.0",
+		CreateRBAC:           true,
+		CreateServiceAccount: true,
+	}, instance)
 }
