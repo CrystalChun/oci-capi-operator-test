@@ -478,17 +478,20 @@ func removeComponent(ctx context.Context, client client.Client, component *compo
 	}
 	return nil
 }
-func removeClusterctlComponents(ctx context.Context, client client.Client, components []unstructured.Unstructured) error {
 
+func removeClusterctlComponents(ctx context.Context, client client.Client, components []unstructured.Unstructured) error {
 	for _, component := range components {
 		err := client.Delete(ctx, &component)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
 	return nil
 }
 
+// getAutoscalerDeploymentValues first sets the default values and then calls the autoscaler.GetAutoscalerDeploymentValues
+// to determine if any values are overridden.
+// It returns the deployment values used for the autoscaler Helm chart.
 func getAutoscalerDeploymentValues(instance *capiv1alpha1.OCIClusterAutoscaler) autoscaler.AutoscalerDeploymentValues {
 	return autoscaler.GetAutoscalerDeploymentValues(autoscaler.AutoscalerDeploymentValues{
 		Name:                 AutoscalerDeploymentName,
