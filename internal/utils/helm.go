@@ -3,9 +3,10 @@ package utils
 import (
 	"context"
 	"fmt"
-	"time"
+	"strings"
 
 	helmclient "github.com/mittwald/go-helm-client"
+	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/repo"
 	"k8s.io/client-go/rest"
 )
@@ -23,6 +24,14 @@ func GetHelmClient(namespace string, cfg *rest.Config) (helmclient.Client, error
 	return helmClient, nil
 }
 
+func ChartExists(helmClient helmclient.Client, name string) (bool, error) {
+	chart, _, err := helmClient.GetChart(name, &action.ChartPathOptions{})
+	if err != nil && !strings.Contains(err.Error(), "not found") {
+		return false, fmt.Errorf("error getting chart: %w", err)
+	}
+	return chart != nil, nil
+}
+
 func AddChartRepo(helmClient helmclient.Client, name, url string) error {
 	chartRepo := repo.Entry{
 		Name: name,
@@ -35,19 +44,26 @@ func AddChartRepo(helmClient helmclient.Client, name, url string) error {
 	return nil
 }
 
-func InstallHelmChart(helmClient helmclient.Client, name, namespace, chartName, values string) error {
-	release, err := helmClient.InstallChart(context.Background(), &helmclient.ChartSpec{
-		ReleaseName: name,
-		ChartName:   chartName,
-		Namespace:   namespace,
-		ValuesYaml:  values,
-		Wait:        true,
-		Version:     "9.45.0", // this "should" work with Kubernetes 1.32.0, ocp 4.19
-		Timeout:     300 * time.Second,
-	}, &helmclient.GenericHelmOptions{})
+func ReleaseExists(helmClient helmclient.Client, name string) (bool, error) {
+	release, err := helmClient.GetRelease(name)
+	if err != nil {
+		return false, fmt.Errorf("error getting release: %w", err)
+	}
+	return release != nil, nil
+}
+
+func InstallHelmChart(helmClient helmclient.Client, chartSpec *helmclient.ChartSpec) error {
+	_, err := helmClient.InstallChart(context.Background(), chartSpec, &helmclient.GenericHelmOptions{})
 	if err != nil {
 		return fmt.Errorf("error installing chart: %w", err)
 	}
-	fmt.Println(release)
+	return nil
+}
+
+func RemoveHelmChart(helmClient helmclient.Client, chartSpec *helmclient.ChartSpec) error {
+	err := helmClient.UninstallRelease(chartSpec)
+	if err != nil {
+		return fmt.Errorf("error removing chart: %w", err)
+	}
 	return nil
 }
