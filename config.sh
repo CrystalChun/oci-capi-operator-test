@@ -11,9 +11,9 @@ export OCI_USER_ID="\"$(grep -E "^user=" ~/.oci/config | cut -d = -f 2)\""
 export OCI_REGION="\"$(grep -E "^region=" ~/.oci/config | cut -d = -f 2)\""
 export OCI_CREDENTIALS_FINGERPRINT="$(grep -E "^fingerprint=" ~/.oci/config | cut -d = -f 2)"
 export OCI_CREDENTIALS_KEY="$(grep -E "^key_file=" ~/.oci/config | cut -d = -f 2)"
-export privateKey="\"$(base64 < $OCI_CREDENTIALS_KEY | tr -d '\n')\""
-export fingerprint="\"$(echo $OCI_CREDENTIALS_FINGERPRINT | tr -d '\n' | base64)\""
-export passphrase="" # passphrase for api key, leave empty if did not set during generation
+export privateKey="$(base64 < $OCI_CREDENTIALS_KEY | tr -d '\n')"
+export fingerprint="$(echo $OCI_CREDENTIALS_FINGERPRINT | tr -d '\n' | base64)"
+export passphrase="\"\"" # passphrase for api key, leave empty if did not set during generation
 
 compartment_id="$(oci iam compartment list --all --compartment-id-in-subtree true --access-level ACCESSIBLE --raw-output --query "data[?name=='$compartment_name'].id | [0]")"
 nsg_name=cluster-compute-nsg
