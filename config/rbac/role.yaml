@@ -6,15 +6,6 @@ metadata:
 rules:
 - apiGroups:
   - addons.cluster.x-k8s.io
-  resources:
-  - clusterresourcesets/finalizers
-  - clusterresourcesets/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - addons.cluster.x-k8s.io
   - bootstrap.cluster.x-k8s.io
   - controlplane.cluster.x-k8s.io
   - infrastructure.cluster.x-k8s.io
@@ -43,28 +34,12 @@ rules:
   - watch
 - apiGroups:
   - apiextensions.k8s.io
+  - coordination.k8s.io
+  - security.openshift.io
   resources:
   - customresourcedefinitions
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - apiextensions.k8s.io
-  resources:
-  - customresourcedefinitions/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - apps
-  resources:
-  - deployments
+  - leases
+  - securitycontextconstraints
   verbs:
   - create
   - delete
@@ -75,20 +50,18 @@ rules:
   - watch
 - apiGroups:
   - authentication.k8s.io
-  resources:
-  - tokenreviews
-  verbs:
-  - create
-- apiGroups:
   - authorization.k8s.io
   resources:
   - subjectaccessreviews
+  - tokenreviews
   verbs:
   - create
 - apiGroups:
   - capi.openshift.io
   resources:
   - ociclusterautoscalers
+  - ociclusterautoscalers/finalizers
+  - ociclusterautoscalers/status
   verbs:
   - create
   - delete
@@ -97,20 +70,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - capi.openshift.io
-  resources:
-  - ociclusterautoscalers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - capi.openshift.io
-  resources:
-  - ociclusterautoscalers/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - certificates.k8s.io
   resources:
@@ -130,37 +89,29 @@ rules:
 - apiGroups:
   - cluster.x-k8s.io
   resources:
-  - clusterclasses
-  - clusterclasses/status
-  - clusters/finalizers
-  - clusters/status
-  - machinedrainrules
-  - machinehealthchecks/finalizers
-  - machinehealthchecks/status
+  - '*/finalizers'
+  - '*/status'
   verbs:
   - get
-  - list
   - patch
   - update
-  - watch
 - apiGroups:
   - cluster.x-k8s.io
   resources:
+  - clusterclasses
   - clusters
+  - clusters/finalizers
+  - clusters/status
   - machinedeployments
   - machinedeployments/finalizers
   - machinedeployments/status
+  - machinedrainrules
   - machinehealthchecks
   - machinepools
-  - machinepools/finalizers
-  - machinepools/status
   - machines
-  - machines/finalizers
-  - machines/status
   - machinesets
-  - machinesets/finalizers
-  - machinesets/status
   - machinetemplates
+  - machinetemplates/status
   verbs:
   - create
   - delete
@@ -169,14 +120,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
-  - machinetemplates/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - config.openshift.io
   resources:
@@ -184,18 +127,6 @@ rules:
   verbs:
   - get
   - list
-  - watch
-- apiGroups:
-  - coordination.k8s.io
-  resources:
-  - leases
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - ""
@@ -218,22 +149,18 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - ocicluster/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - ocimachines
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - ipam.cluster.x-k8s.io
   resources:
   - ipaddressclaims
+  - ipaddressclaims/status
   - ipaddresses
   verbs:
   - get
@@ -241,13 +168,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - ipam.cluster.x-k8s.io
-  resources:
-  - ipaddressclaims/status
-  verbs:
-  - patch
-  - update
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
@@ -270,18 +190,6 @@ rules:
   - extensionconfigs
   - extensionconfigs/status
   verbs:
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - security.openshift.io
-  resources:
-  - securitycontextconstraints
-  verbs:
-  - create
-  - delete
   - get
   - list
   - patch
