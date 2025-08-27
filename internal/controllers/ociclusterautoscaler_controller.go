@@ -58,46 +58,18 @@ type OCIClusterAutoscalerReconciler struct {
 	AutoScalingConfig enableautoscaler.Config
 }
 
-// +kubebuilder:rbac:groups=capi.openshift.io,resources=ociclusterautoscalers,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=capi.openshift.io,resources=ociclusterautoscalers/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=capi.openshift.io,resources=ociclusterautoscalers/finalizers,verbs=update
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters/finalizers,verbs=update
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinetemplates,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinetemplates/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments/finalizers,verbs=update
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=ocicluster/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles/aggregation,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions/status,verbs=get;patch;update
-// +kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=validatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=mutatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=addons.cluster.x-k8s.io,resources=clusterresourcesets/finalizers;clusterresourcesets/status,verbs=get;patch;update
-// +kubebuilder:rbac:groups=addons.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io;controlplane.cluster.x-k8s.io;infrastructure.cluster.x-k8s.io,resources=*,verbs=create;delete;get;list;patch;update;watch
-// +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
-// +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusterclasses;clusterclasses/status;clusters;clusters/finalizers;clusters/status;machinedrainrules;machinehealthchecks/finalizers;machinehealthchecks/status,verbs=get;list;patch;update;watch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments;machinedeployments/finalizers;machinedeployments/status;machinehealthchecks;machinepools;machinepools/finalizers;machinepools/status;machines;machines/finalizers;machines/status;machinesets;machinesets/finalizers;machinesets/status,verbs=create;delete;get;list;patch;update;watch
-// +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddressclaims;ipaddresses,verbs=get;list;patch;update;watch
-// +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddressclaims/status,verbs=patch;update
-// +kubebuilder:rbac:groups=runtime.cluster.x-k8s.io,resources=extensionconfigs;extensionconfigs/status,verbs=get;list;patch;update;watch
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=ocimachines,verbs=get;list;watch
+// +kubebuilder:rbac:groups=capi.openshift.io,resources=ociclusterautoscalers;ociclusterautoscalers/status;ociclusterautoscalers/finalizers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status;clusters/finalizers;machinetemplates;machinetemplates/status;machinedeployments;machinedeployments/status;machinedeployments/finalizers;clusterclasses;machinedrainrules;machinehealthchecks;machinepools;machines;machinesets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=*/status;*/finalizers,verbs=get;update;patch
+// +kubebuilder:rbac:groups=core,resources=namespaces;serviceaccounts;secrets;configmaps;services;events,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterroles/aggregation;clusterrolebindings;roles;rolebindings,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=validatingwebhookconfigurations;mutatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apiextensions.k8s.io;security.openshift.io;coordination.k8s.io,resources=customresourcedefinitions;securitycontextconstraints;leases,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=ocicluster/status;ocimachines,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=ipam.cluster.x-k8s.io,resources=ipaddressclaims;ipaddresses;ipaddressclaims/status,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=runtime.cluster.x-k8s.io,resources=extensionconfigs;extensionconfigs/status,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=authentication.k8s.io;authorization.k8s.io,resources=tokenreviews;subjectaccessreviews,verbs=create
+// +kubebuilder:rbac:groups=addons.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io;controlplane.cluster.x-k8s.io;infrastructure.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=config.openshift.io,resources=infrastructures,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -105,7 +77,6 @@ type OCIClusterAutoscalerReconciler struct {
 func (r *OCIClusterAutoscalerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// Fetch the OCIClusterAutoscaler instance
 	instance := &capiv1alpha1.OCIClusterAutoscaler{}
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
