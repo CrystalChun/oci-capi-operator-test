@@ -1,6 +1,6 @@
 # OCI CAPI Operator
 
-This operator automates the deployment and management of Cluster API (CAPI) components for Oracle Cloud Infrastructure (OCI) in OpenShift clusters, enabling seamless cluster autoscaling.
+This operator automates the deployment and management of Cluster API (CAPI) and cluster autoscaler components for Oracle Cloud Infrastructure (OCI) in OpenShift clusters, enabling seamless cluster autoscaling.
 
 ## Description
 
@@ -159,6 +159,44 @@ oc get no
 To test scale down:
 ```sh
 oc scale deployment -n default nginx --replicas=0
+```
+
+### Cleanup
+
+#### Scale down completely
+
+To ensure no instances are left dangling, completely scale down by:
+1. Scaling down the nginx deployment 
+    ```sh
+    oc scale deployment -n default nginx --replicas=0
+    ```
+2. Scale down the MachineDeployment, if necessary
+    ```sh
+    oc scale md -n capi-system <md name> --replicas=0
+    ```
+3. Ensure all the `OCIMachine` CRs are removed
+    ```sh
+    oc get ocimachine -n capi-system
+    ```
+
+#### Remove the CAPI and Autoscaler deployments
+
+Remove the OCIClusterAutoscaler CR:
+```sh
+make remove-cr
+```
+
+This deletes the `ociclusterautoscaler` instance, which triggers the operator to cleanup all the resources it created.
+
+Check the pod logs of the oci-capi-operator
+```sh
+oc logs -n oci-capi-operator deploy/oci-capi-operator-controller-manager
+```
+
+#### Remove the operator
+
+```sh
+make undeploy
 ```
 
 ## License
