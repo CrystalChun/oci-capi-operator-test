@@ -4,12 +4,12 @@ This operator automates the deployment and management of Cluster API (CAPI) and 
 
 ## Description
 
-The OCI CAPI Operator deploys all necessary components in order to enable autoscaling in an OCI OCP cluster
+The OCI CAPI Operator deploys all of the necessary components in order to enable autoscaling in an OCI OCP cluster
 
 - CAPI and CAPOCI installation management
-- Cluster-autoscaler deployment and configuration
+- [Cluster-autoscaler](https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler) deployment and configuration
 - CAPI CRs to manager the OCI cluster
-- Certificate auto-approval for new nodes
+- Certificate approver for new nodes
 
 See @javipolo's [blog](https://github.com/javipolo/openshift-oci-capi-autoscaling/blob/blog_cursor/BLOG.md) for more details.
 
@@ -20,7 +20,7 @@ See @javipolo's [blog](https://github.com/javipolo/openshift-oci-capi-autoscalin
 - OpenShift cluster running on OCI (see instructions for creating an OCI OCP cluster [here](https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/installing_on_oci/installing-oci-assisted-installer#installing-oci-about-assisted-installer_installing-oci-assisted-installer))
 - The `kubeconfig` file for this cluster downloaded locally
 - Oracle Cloud CLI ([oci-cli](https://github.com/oracle/oci-cli)) installed
-- oc CLI installed
+- [oc](https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/cli_tools/openshift-cli-oc) CLI installed
 
 
 ### Configuration
@@ -39,11 +39,11 @@ Public Key file: ` ~/.oci/oci_api_key_public.pem`
 
 Private Key file: ` ~/.oci/oci_api_key.pem`
     
-Upload API key to https://cloud.oracle.com/identity/domains/my-profile/auth-tokens > choose public key file
+Upload API key to [OCI Console](https://cloud.oracle.com/identity/domains/my-profile/auth-tokens) > choose public key file
 
 Additional information: 
-  - Full instructions: https://docs.oracle.com/en-us/iaas/Content/API/Concepts/apisigningkey.htm#Required_Keys_and_OCIDs
-  - Generate API Signing Key: https://docs.oracle.com/en-us/iaas/Content/API/Concepts/apisigningkey.htm#apisigningkey_topic_How_to_Generate_an_API_Signing_Key_Mac_Linux
+  - [Full instructions](https://docs.oracle.com/en-us/iaas/Content/API/Concepts/apisigningkey.htm#Required_Keys_and_OCIDs)
+  - Script above comes from [Generate API Signing Key](https://docs.oracle.com/en-us/iaas/Content/API/Concepts/apisigningkey.htm#apisigningkey_topic_How_to_Generate_an_API_Signing_Key_Mac_Linux)
 
 
 #### Step 2: Configure OCI CLI
@@ -59,23 +59,21 @@ Run the following to configure the `oci` CLI:
 oci setup config
 ```
 
-#### Step 3: Upload an RHCOS Image 
-(src: https://github.com/javipolo/openshift-oci-capi-autoscaling/blob/blog_cursor/BLOG.md#step-1-create-custom-rhcos-image)
+#### Step 3: Upload an RHCOS Image [src](https://github.com/javipolo/openshift-oci-capi-autoscaling/blob/blog_cursor/BLOG.md#step-1-create-custom-rhcos-image)
 This RHCOS image is used during autoscaling when installing new worker nodes to this cluster.
 
 You need a custom Red Hat CoreOS image in your OCI tenancy for the autoscaling nodes:
 
   1. Download RHCOS Image (OpenStack flavor) that matches your OpenShift version: In this example, our version is 4.19.0
-  
-  ```sh
-  curl -LO https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.19/4.19.0/rhcos-4.19.0-x86_64-openstack.x86_64.qcow2.gz
-  gzip -d rhcos-4.19.0-x86_64-openstack.x86_64.qcow2
-  ```
+    
+      ```sh
+      curl -LO https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.19/4.19.0/rhcos-4.19.0-x86_64-openstack.x86_64.qcow2.gz
+      gzip -d rhcos-4.19.0-x86_64-openstack.x86_64.qcow2
+      ```
 
-  2. Import to OCI:
-    Follow Oracle's documentation: [Create a Custom Linux Image](https://docs.public.oneportal.content.oci.oraclecloud.com/en-us/iaas/compute-cloud-at-customer/topics/images/importing-custom-linux-imges.htm)
-    Upload the qcow2 file to OCI and create a custom image
-    Note the image name 
+  2. Upload the qcow2 file to OCI and create a custom image
+      - Follow Oracle's documentation: [Create a Custom Linux Image](https://docs.public.oneportal.content.oci.oraclecloud.com/en-us/iaas/compute-cloud-at-customer/topics/images/importing-custom-linux-imges.htm)
+      - Note the image name 
 
 #### Step 4: Clone this repo and fill out config.sh file
 
@@ -91,7 +89,7 @@ image_name= # this is the name of the image you uploaded in step 3
 ```
 
 
-Ensure you're authenticated to to your OCI Cluster
+Ensure you're authenticated to your OCI OCP Cluster
 ```sh
 export KUBECONFIG= # Path to OCI OCP Cluster Kubeconfig file
 ```
@@ -109,6 +107,7 @@ Optional: Build the operator image
 ```sh
 export IMG= # set image name
 make build-image
+make push-image
 ```
 
 Deploy the operator
@@ -125,11 +124,11 @@ Apply the `ociclusterautoscalers` CR to deploy all of the workloads needed for a
 make apply
 ```
 
-The operator should then deploy:
+The operator will deploy:
 - CAPI
 - CAPOCI
 - Cluster Autoscaler 
-- CAPI CRs for autoscaling this cluster: OCICluster, Cluster, OCIMachineTemplate, MachineDeployment
+- CAPI CRs for autoscaling this cluster: `OCICluster`, `Cluster`, `OCIMachineTemplate`, `MachineDeployment`
 
 **NOTE**: The `ociclusterautoscalers` CR has spec fields that are not required, but can be used to override the default values of the deployments.
 See the [ociclusterautoscaler.md doc](./docs/ociclusterautoscaler.md) for more details.
