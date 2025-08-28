@@ -38,25 +38,24 @@ func BootstrapConfigSecret(ctx context.Context, client client.Client, capiSystem
 	return bootstrapConfigSecret, mutateFn
 }
 
-var kubeconfigFmt = `
-apiVersion: v1
+var kubeconfigFmt = `apiVersion: v1
 kind: Config
 clusters:
 - name: %s
-	cluster:
-		server: https://kubernetes.default.svc
-		certificate-authority-data: %s
-	contexts:
-	- name: %s
-		context:
-			cluster: %s
-			user: %s
-			namespace: %s
-	current-context: %s
-	users:
-	- name: %s
-		user:
-			token: %s
+  cluster:
+    server: https://kubernetes.default.svc
+    certificate-authority-data: %s
+contexts:
+- name: %s
+  context:
+    cluster: %s
+    user: %s
+    namespace: %s
+current-context: %s
+users:
+- name: %s
+  user:
+    token: %s
 `
 
 // KubeConfigSecret creates a secret for CAPI so it can access this cluster.
@@ -75,13 +74,17 @@ func KubeConfigSecret(ctx context.Context, client client.Client, capiSystemNames
 		}
 
 		caCrt := base64.StdEncoding.EncodeToString(secret.Data["ca.crt"])
-		token := base64.StdEncoding.EncodeToString(secret.Data["token"])
-		kubeconfig := fmt.Sprintf(kubeconfigFmt, clusterName, caCrt, clusterName, clusterName, capiServiceAccountName, capiSystemNamespace, clusterName, clusterName, token)
+		token := string(secret.Data["token"])
+		kubeconfig := fmt.Sprintf(kubeconfigFmt, clusterName, caCrt, clusterName, clusterName, capiServiceAccountName, capiSystemNamespace, clusterName, capiServiceAccountName, token)
 
 		utils.SetDefaultLabels(kubeConfigSecret, clusterName)
 		kubeConfigSecret.Data = map[string][]byte{
 			"value": []byte(kubeconfig),
 		}
+		labels := kubeConfigSecret.GetLabels()
+		labels["cluster.x-k8s.io/cluster-name"] = clusterName
+		labels["clusterctl.cluster.x-k8s.io/move"] = ""
+		kubeConfigSecret.SetLabels(labels)
 		return nil
 	}
 
