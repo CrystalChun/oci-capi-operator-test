@@ -16,6 +16,7 @@ const (
 	CAPIServiceAccountName   = "capi-manager"
 	CAPOCIServiceAccountName = "capoci-controller-manager"
 
+	// These are the default names of the webhook services when using clusterctl
 	CAPIWebhookServiceName   = "capi-webhook-service"
 	CAPOCIWebhookServiceName = "capoci-webhook-service"
 

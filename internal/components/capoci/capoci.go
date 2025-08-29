@@ -35,7 +35,7 @@ func GetClusterctlComponents(ctx context.Context, deploymentName string, service
 	}
 	reconcileComponents := []unstructured.Unstructured{}
 	for _, component := range components {
-		utils.SetControllerLabels(&component, autoscaler.Name)
+		utils.SetDefaultLabels(&component, autoscaler.Name)
 		switch component.GetKind() {
 		case "Service":
 			utils.SetOpenshiftServiceCertAnnotation(&component, webhookServiceName)
@@ -48,7 +48,6 @@ func GetClusterctlComponents(ctx context.Context, deploymentName string, service
 			component.SetName(deploymentName)
 			reconcileComponents = append(reconcileComponents, component)
 		case "ServiceAccount":
-			utils.SetDefaultLabels(&component, autoscaler.Name)
 			component.SetName(serviceAccountName)
 			reconcileComponents = append(reconcileComponents, component)
 		case "Certificate", "Issuer", "Namespace", "Secret", "CustomResourceDefinition": // skip these

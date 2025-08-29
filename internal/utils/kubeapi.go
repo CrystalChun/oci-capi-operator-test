@@ -112,23 +112,6 @@ func SetDefaultLabels(obj client.Object, instanceName string) error {
 	return nil
 }
 
-func SetControllerLabels(obj *unstructured.Unstructured, instanceName string) error {
-	if obj == nil {
-		return fmt.Errorf("unstructured object is nil")
-	}
-	labels := map[string]string{
-		"cluster.x-k8s.io/provider": "cluster-api",
-		ManagedByLabel:              instanceName,
-	}
-	if objLabels := obj.GetLabels(); objLabels != nil {
-		for key, value := range objLabels {
-			labels[key] = value
-		}
-	}
-	obj.SetLabels(labels)
-	return nil
-}
-
 func SetOpenshiftServiceCertAnnotation(obj *unstructured.Unstructured, name string) error {
 	if obj == nil {
 		return fmt.Errorf("unstructured object is nil")
