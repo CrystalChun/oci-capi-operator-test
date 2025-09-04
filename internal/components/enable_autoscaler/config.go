@@ -60,7 +60,9 @@ func SetAutoScalingConfig(ctx context.Context, client client.Client, instance *o
 	if instance.Spec.Autoscaling.ImageID != "" {
 		config.AutoScalingConfig.ImageID = instance.Spec.Autoscaling.ImageID
 	}
-	if config, err := SetNetworkConfig(ctx, client, config); err != nil {
+	var err error
+	config, err = SetNetworkConfig(ctx, client, config)
+	if err != nil {
 		return config, fmt.Errorf("failed to set network config: %w", err)
 	}
 
