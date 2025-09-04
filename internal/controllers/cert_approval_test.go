@@ -7,7 +7,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -17,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	certificatesv1client "k8s.io/client-go/kubernetes/typed/certificates/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -25,12 +23,11 @@ import (
 
 var _ = Describe("Certificate Approval Controller", func() {
 	var (
-		ctx               context.Context
-		fakeClient        client.Client
-		scheme            *runtime.Scheme
-		reconciler        *CertificateApprovalReconciler
-		testCSR           *certificatesv1.CertificateSigningRequest
-		testOCIMachine    *metav1.PartialObjectMetadata
+		ctx            context.Context
+		fakeClient     client.Client
+		scheme         *runtime.Scheme
+		reconciler     *CertificateApprovalReconciler
+		testOCIMachine *metav1.PartialObjectMetadata
 	)
 
 	BeforeEach(func() {

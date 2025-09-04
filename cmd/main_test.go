@@ -1,12 +1,10 @@
 package main
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	enableautoscaler "github.com/openshift/oci-capi-operator/internal/components/enable_autoscaler"
 	"github.com/openshift/oci-capi-operator/internal/components/capoci"
+	enableautoscaler "github.com/openshift/oci-capi-operator/internal/components/enable_autoscaler"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap/zapcore"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -17,15 +15,15 @@ var _ = Describe("Main Command", func() {
 		It("should have properly initialized scheme", func() {
 			// Verify that the global scheme variable is properly initialized
 			Expect(scheme).NotTo(BeNil())
-			
+
 			// Check that various required types are registered
 			gvks := scheme.AllKnownTypes()
-			
+
 			// Should have core Kubernetes types
 			foundSecret := false
 			foundDeployment := false
 			foundConfigMap := false
-			
+
 			for gvk := range gvks {
 				switch gvk.Kind {
 				case "Secret":
@@ -36,7 +34,7 @@ var _ = Describe("Main Command", func() {
 					foundConfigMap = true
 				}
 			}
-			
+
 			Expect(foundSecret).To(BeTrue())
 			Expect(foundDeployment).To(BeTrue())
 			Expect(foundConfigMap).To(BeTrue())
@@ -137,17 +135,17 @@ var _ = Describe("Main Command", func() {
 					// Help would be shown and exit 1
 				},
 			}
-			
+
 			initCmd := NewInitCommand()
 			runCmd := NewRunCommand()
-			
+
 			rootCmd.AddCommand(initCmd)
 			rootCmd.AddCommand(runCmd)
 
 			// Verify command structure
 			commands := rootCmd.Commands()
 			Expect(commands).To(HaveLen(2))
-			
+
 			commandNames := make([]string, len(commands))
 			for i, cmd := range commands {
 				commandNames[i] = cmd.Use
@@ -160,9 +158,9 @@ var _ = Describe("Main Command", func() {
 			logger := zap.New(zap.JSONEncoder(func(o *zapcore.EncoderConfig) {
 				o.EncodeTime = zapcore.RFC3339TimeEncoder
 			}))
-			
+
 			Expect(logger).NotTo(BeNil())
-			
+
 			// Verify logger can be used
 			logger.Info("test message")
 		})
@@ -186,7 +184,7 @@ var _ = Describe("Main Command", func() {
 		It("should handle HTTP/2 configuration", func() {
 			// Test HTTP/2 disabled (default)
 			options.RunOptions.EnableHTTP2 = false
-			
+
 			// The disableHTTP2 function would be called
 			// We can't easily test the actual TLS config here,
 			// but we can verify the option is set correctly
@@ -207,7 +205,7 @@ var _ = Describe("Main Command", func() {
 
 			Expect(options.RunOptions.ProbeAddr).To(Equal(expectedProbeAddr))
 			Expect(options.RunOptions.EnableLeaderElection).To(Equal(expectedLeaderElection))
-			
+
 			// The actual leader election ID is hardcoded in the function
 			Expect(expectedLeaderElectionID).To(Equal("1af242a3.openshift.io"))
 		})
@@ -239,7 +237,7 @@ var _ = Describe("Main Command", func() {
 			// Test that envconfig processing is handled
 			// The actual processing would happen during run()
 			options := Options{}
-			
+
 			// Verify the structure exists for envconfig
 			Expect(options.CAPOCICredentials).NotTo(BeNil())
 			Expect(options.AutoScalingConfig).NotTo(BeNil())
@@ -250,11 +248,11 @@ var _ = Describe("Main Command", func() {
 		It("should configure health and readiness checks", func() {
 			// Verify that health check configuration would be applied
 			// The actual checks are added to the manager in run()
-			
+
 			// These endpoints would be configured:
 			healthEndpoint := "/healthz"
 			readyEndpoint := "/readyz"
-			
+
 			Expect(healthEndpoint).To(Equal("/healthz"))
 			Expect(readyEndpoint).To(Equal("/readyz"))
 		})
