@@ -124,11 +124,24 @@ Apply the `ociclusterautoscalers` CR to deploy all of the workloads needed for a
 make apply
 ```
 
+#### Verify Operator Deployments
+
 The operator will deploy:
 - CAPI
 - CAPOCI
 - Cluster Autoscaler 
 - CAPI CRs for autoscaling this cluster: `OCICluster`, `Cluster`, `OCIMachineTemplate`, `MachineDeployment`
+
+Run the following to verify:
+```sh
+oc get po -n capi-system # Should have both CAPI and Autoscaler deployments
+oc get po -n cluster-api-provider-oci-system
+oc get cluster -n capi-system
+oc get ocicluster -n capi-system
+oc get machinedeployment -n capi-system 
+oc get ocimachinetemplate -n capi-system
+```
+
 
 **NOTE**: The `ociclusterautoscalers` CR has spec fields that are not required, but can be used to override the default values of the deployments.
 See the [ociclusterautoscaler.md doc](./docs/ociclusterautoscaler.md) for more details.
