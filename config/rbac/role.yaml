@@ -1,0 +1,197 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - addons.cluster.x-k8s.io
+  - bootstrap.cluster.x-k8s.io
+  - controlplane.cluster.x-k8s.io
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - '*'
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  - validatingwebhookconfigurations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apiextensions.k8s.io
+  - coordination.k8s.io
+  - security.openshift.io
+  resources:
+  - customresourcedefinitions
+  - leases
+  - securitycontextconstraints
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - authentication.k8s.io
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - capi.openshift.io
+  resources:
+  - ociclusterautoscalers
+  - ociclusterautoscalers/finalizers
+  - ociclusterautoscalers/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests/approval
+  - certificatesigningrequests/status
+  verbs:
+  - update
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - '*/finalizers'
+  - '*/status'
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - clusterclasses
+  - clusters
+  - clusters/finalizers
+  - clusters/status
+  - machinedeployments
+  - machinedeployments/finalizers
+  - machinedeployments/status
+  - machinedrainrules
+  - machinehealthchecks
+  - machinepools
+  - machines
+  - machinesets
+  - machinetemplates
+  - machinetemplates/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - config.openshift.io
+  resources:
+  - infrastructures
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - events
+  - namespaces
+  - secrets
+  - serviceaccounts
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - ocicluster/status
+  - ocimachines
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ipam.cluster.x-k8s.io
+  resources:
+  - ipaddressclaims
+  - ipaddressclaims/status
+  - ipaddresses
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  - clusterroles
+  - clusterroles/aggregation
+  - rolebindings
+  - roles
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - runtime.cluster.x-k8s.io
+  resources:
+  - extensionconfigs
+  - extensionconfigs/status
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch

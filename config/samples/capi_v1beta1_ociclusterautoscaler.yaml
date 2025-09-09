@@ -1,0 +1,32 @@
+apiVersion: capi.openshift.io/v1alpha1
+kind: OCIClusterAutoscaler
+metadata:
+  labels:
+    app.kubernetes.io/name: ociclusterautoscaler
+    app.kubernetes.io/instance: ociclusterautoscaler-sample
+    app.kubernetes.io/part-of: oci-capi-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: oci-capi-operator
+  name: ociclusterautoscaler-sample
+spec:
+#  oci:
+#    imageId: "sample-image-id"
+#  autoscaling:
+#    minNodes: 0
+#    maxNodes: 4
+#    shape: "sample-shape"
+#    shapeConfig:
+#      cpus: 4
+#      memory: 16 # in GB
+#  capi:
+#    namespace: "sample-namespace"
+#    clusterName: "sample-cluster-name"
+#  clusterAutoscaler:
+#    repositoryURL: "sample-repository-url"
+#    name: "sample-name"
+#    namespace: "sample-namespace"
+#    serviceAccountName: "sample-service-account-name"
+#    cloudProvider: "sample-cloud-provider"
+#    createRBAC: true
+#    createServiceAccount: true
+#    imageID: "sample-image-id"

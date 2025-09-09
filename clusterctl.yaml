@@ -1,0 +1,10 @@
+providers:
+  # Core provider
+  - name: "cluster-api"
+    url: "https://github.com/kubernetes-sigs/cluster-api/releases/latest/core-components.yaml"
+    type: "CoreProvider"
+  
+  # Infrastructure provider
+  - name: "oci"
+    url: "https://github.com/oracle/cluster-api-provider-oci/releases/latest/infrastructure-components.yaml"
+    type: "InfrastructureProvider"
