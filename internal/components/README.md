@@ -1,6 +1,6 @@
 # Components
 
-These are all of the components this operator will deploy.
+The components this operator will deploy.
 
 Each component encapsulates all of the subcomponents required
 to deploy it.
@@ -33,16 +33,15 @@ Additional components outside of the default clusterctl generation include:
 
 ## CRDs
 
-The CRDs are deployed in an init container for this operator. This
-ensures the CRDs exist in the cluster ahead of the operator.
+The CRDs are deployed in an init container for this operator.
+It ensures all of the CRDs exist in the cluster ahead of the operator.
 
-It includes all of the CAPI, CAPOCI CRDs.
+Includes all of the CAPI, CAPOCI CRDs.
 
 ## Enable Autoscaler
 
-These are the CAPI CRs required to enable autoscaling. It includes:
+The CAPI CRs required to enable autoscaling include:
 - Cluster CR
 - OCICluster CR
 - MachineDeployment CR
 - OCIMachineTemplate CR
-

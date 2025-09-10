@@ -60,6 +60,7 @@ oci setup config
 ```
 
 #### Step 3: Upload an RHCOS Image [src](https://github.com/javipolo/openshift-oci-capi-autoscaling/blob/blog_cursor/BLOG.md#step-1-create-custom-rhcos-image)
+
 This RHCOS image is used during autoscaling when installing new worker nodes to this cluster.
 
 You need a custom Red Hat CoreOS image in your OCI tenancy for the autoscaling nodes:
@@ -82,19 +83,19 @@ git clone https://github.com/CrystalChun/oci-capi-operator-test
 cd oci-capi-operator-test
 ```
 
-In `config.sh` fill out these mandatory variables 
+In `config.sh` fill out these mandatory variables: 
 ```sh
 compartment_name= 
 image_name= # this is the name of the image you uploaded in step 3
 ```
 
 
-Ensure you're authenticated to your OCI OCP Cluster
+Ensure you're authenticated into your OCI OCP Cluster:
 ```sh
 export KUBECONFIG= # Path to OCI OCP Cluster Kubeconfig file
 ```
 
-Source the config file
+Source the config file:
 ```sh
 source config.sh
 ```
@@ -198,15 +199,16 @@ Remove the OCIClusterAutoscaler CR:
 make remove-cr
 ```
 
-This deletes the `ociclusterautoscaler` instance, which triggers the operator to cleanup all the resources it created.
+This deletes the `ociclusterautoscaler` instance, which triggers the operator to cleanup all of the resources it created.
 
-Check the pod logs of the oci-capi-operator
+Check the pod logs of the oci-capi-operator:
 ```sh
 oc logs -n oci-capi-operator deploy/oci-capi-operator-controller-manager
 ```
 
 #### Remove the operator
 
+To remove this operator and all of its components, run the following:
 ```sh
 make undeploy
 ```

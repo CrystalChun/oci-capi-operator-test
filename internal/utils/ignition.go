@@ -58,7 +58,7 @@ func GenerateIgnitionConfig(ctx context.Context, client client.Client) (string, 
 				TLS: types.TLS{
 					CertificateAuthorities: []types.Resource{
 						{
-							Source: swag.String(fmt.Sprintf("data:text/plain;charset=utf-8;base64,%s", machineConfigCAB64)), //TODO: confirm this is base64 encoded already
+							Source: swag.String(fmt.Sprintf("data:text/plain;charset=utf-8;base64,%s", machineConfigCAB64)),
 						},
 					},
 				},
