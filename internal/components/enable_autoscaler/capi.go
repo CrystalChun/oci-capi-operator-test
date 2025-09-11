@@ -198,12 +198,14 @@ func ValidateMinMaxNodes(autoscaler *ocicapioperatorv1alpha1.OCIClusterAutoscale
 	}
 
 	// ensure that min nodes is less than max nodes
+	if minNodes < 0 {
+		return fmt.Errorf("min nodes must be equal to or greater than 0")
+	}
+	if maxNodes < 0 {
+		return fmt.Errorf("max nodes must be equal to or greater than 0")
+	}
 	if minNodes > maxNodes {
 		return fmt.Errorf("min nodes must be less than max nodes")
-	} else if minNodes < 0 {
-		return fmt.Errorf("min nodes must be equal to or greater than 0")
-	} else if maxNodes < 0 {
-		return fmt.Errorf("max nodes must be equal to or greater than 0")
 	}
 	return nil
 }
