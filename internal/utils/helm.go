@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// GetHelmClient creates a new Helm client from the provided namespace and configuration
 func GetHelmClient(namespace string, cfg *rest.Config) (helmclient.Client, error) {
 	helmClient, err := helmclient.NewClientFromRestConf(&helmclient.RestConfClientOptions{
 		Options: &helmclient.Options{
@@ -24,6 +25,7 @@ func GetHelmClient(namespace string, cfg *rest.Config) (helmclient.Client, error
 	return helmClient, nil
 }
 
+// ChartExists checks if a chart exists in the Helm client
 func ChartExists(helmClient helmclient.Client, name string) (bool, error) {
 	chart, _, err := helmClient.GetChart(name, &action.ChartPathOptions{})
 	if err != nil && !strings.Contains(err.Error(), "not found") {
@@ -32,6 +34,7 @@ func ChartExists(helmClient helmclient.Client, name string) (bool, error) {
 	return chart != nil, nil
 }
 
+// AddChartRepo adds a chart repository to the Helm client
 func AddChartRepo(helmClient helmclient.Client, name, url string) error {
 	chartRepo := repo.Entry{
 		Name: name,
@@ -44,6 +47,7 @@ func AddChartRepo(helmClient helmclient.Client, name, url string) error {
 	return nil
 }
 
+// ReleaseExists checks if a release exists in the Helm client
 func ReleaseExists(helmClient helmclient.Client, name string) (bool, error) {
 	release, err := helmClient.GetRelease(name)
 	if err != nil {
@@ -52,6 +56,7 @@ func ReleaseExists(helmClient helmclient.Client, name string) (bool, error) {
 	return release != nil, nil
 }
 
+// InstallHelmChart installs a Helm chart
 func InstallHelmChart(helmClient helmclient.Client, chartSpec *helmclient.ChartSpec) error {
 	_, err := helmClient.InstallChart(context.Background(), chartSpec, &helmclient.GenericHelmOptions{})
 	if err != nil {
@@ -60,6 +65,7 @@ func InstallHelmChart(helmClient helmclient.Client, chartSpec *helmclient.ChartS
 	return nil
 }
 
+// RemoveHelmChart removes a Helm chart
 func RemoveHelmChart(helmClient helmclient.Client, chartSpec *helmclient.ChartSpec) error {
 	err := helmClient.UninstallRelease(chartSpec)
 	if err != nil {
