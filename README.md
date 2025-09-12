@@ -1,6 +1,6 @@
 # OCI CAPI Operator
 
-This operator automates the deployment and management of Cluster API (CAPI) and cluster autoscaler components for Oracle Cloud Infrastructure (OCI) in OpenShift clusters, enabling seamless cluster autoscaling.
+This operator automates the deployment and management of Cluster API (CAPI) and cluster autoscaler components for OpenShift (OCP) clusters deployed with Oracle Cloud Infrastructure (OCI), enabling seamless cluster autoscaling.
 
 ## Description
 
@@ -104,18 +104,22 @@ This should auto-fill/retrieve all the environment variables needed to deploy th
 
 ### Deploy the operator
 
-Optional: Build the operator image
+Optional: Build the operator image from this repository
 ```sh
-export IMG= # set image name
+export IMG= # set to image for the oci capi operator
 make build-image
+
+# Optionally, push the built image to a remote image store
 make push-image
 ```
 
-Deploy the operator
+Deploy the OCI CAPI operator
 ```sh
-export IMG=
+export IMG= # set to image for the oci capi operator
 make deploy
 ```
+
+By default, the operator will be deployed in the `oci-capi-operator` namespace.
 
 ### Use the operator
 
@@ -135,7 +139,8 @@ The operator will deploy:
 
 Run the following to verify:
 ```sh
-oc get po -n capi-system # Should have both CAPI and Autoscaler deployments
+# Should have both CAPI and Autoscaler deployments
+oc get po -n capi-system 
 oc get po -n cluster-api-provider-oci-system
 oc get cluster -n capi-system
 oc get ocicluster -n capi-system
@@ -178,7 +183,7 @@ oc scale deployment -n default nginx --replicas=0
 
 #### Scale down completely
 
-To ensure no instances are left dangling, completely scale down by:
+To ensure no instances are left dangling, completely scale down CAPI-installed instances by:
 1. Scaling down the nginx deployment 
     ```sh
     oc scale deployment -n default nginx --replicas=0
@@ -206,9 +211,11 @@ Check the pod logs of the oci-capi-operator:
 oc logs -n oci-capi-operator deploy/oci-capi-operator-controller-manager
 ```
 
+Verify all resources are removed by re-running [the verification step](#verify-operator-deployments) and ensuring no resources appear.
+
 #### Remove the operator
 
-To remove this operator and all of its components, run the following:
+To uninstall this operator and all of its components, run the following:
 ```sh
 make undeploy
 ```
@@ -228,4 +235,3 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
