@@ -45,7 +45,7 @@ func GenerateIgnitionConfig(ctx context.Context, client client.Client) (string, 
 					},
 					FileEmbedded1: types.FileEmbedded1{
 						Contents: types.Resource{
-							Source: swag.String("data:text/plain;charset=utf-8;base64,IyEvYmluL2Jhc2gKc2V0IC1ldW8gcGlwZWZhaWwKCiMgR2V0IGhvc3RuYW1lIGZyb20gT0NJIG1ldGFkYXRhCmhvc3RuYW1lPSQoY3VybCAtcyBodHRwOi8vMTY5LjI1NC4xNjkuMjU0L29wYy92Mi9pbnN0YW5jZS8gfCBqcSAtciAuZGlzcGxheU5hbWUpCgppZiBbIC1uICIkaG9zdG5hbWUiIF07IHRoZW4KICAgIGVjaG8gIlNldHRpbmcgaG9zdG5hbWUgdG8gJGhvc3RuYW1lIgogICAgaG9zdG5hbWVjdGwgc2V0LWhvc3RuYW1lICIkaG9zdG5hbWUiCmVsc2UKICAgIGVjaG8gIkZhaWxlZCB0byBnZXQgaG9zdG5hbWUgZnJvbSBPQ0kgbWV0YWRhdGEiCiAgICBleGl0IDEKZmkK"),
+							Source: swag.String("data:text/plain;charset=utf-8;base64,IyEvYmluL2Jhc2ggLXgKCk9DSV9IT1NUTkFNRT0vZXRjL2hvc3RuYW1lLW9jaQplY2hvICJDdXJyZW50IGhvc3RuYW1lOiAkKGhvc3RuYW1lKSIKdW50aWwgW1sgLXMgJE9DSV9IT1NUTkFNRSBdXTsgZG8KICAgIC91c3IvYmluL2N1cmwgLXMgLUggIkF1dGhvcml6YXRpb246IEJlYXJlciBPcmFjbGUiIGh0dHA6Ly8xNjkuMjU0LjE2OS4yNTQvb3BjL3YyL2luc3RhbmNlL2hvc3RuYW1lIC1vICRPQ0lfSE9TVE5BTUUKZG9uZQoKZWNobyAiU2V0dGluZyBob3N0bmFtZSB0byAkKGNhdCAkT0NJX0hPU1ROQU1FKSIKCmNhdCAkT0NJX0hPU1ROQU1FID4gL3Byb2Mvc3lzL2tlcm5lbC9ob3N0bmFtZQo="),
 						},
 						Mode: swag.Int(493),
 					},
