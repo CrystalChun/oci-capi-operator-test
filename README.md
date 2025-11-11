@@ -89,6 +89,12 @@ compartment_name=
 image_name= # this is the name of the image you uploaded in step 3
 ```
 
+**IMPORTANT**: If your OCP cluster has a different name than the cluster name defined in OCI, set the `oci_cluster_name` to the OCI cluster's name in the `config.sh` file under Optional Config Variables
+```sh
+# Optional Config Variables
+oci_cluster_name=
+```
+
 
 Ensure you're authenticated into your OCI OCP Cluster:
 ```sh
@@ -106,7 +112,7 @@ This should auto-fill/retrieve all the environment variables needed to deploy th
 
 Optional: Build the operator image from this repository
 ```sh
-export IMG= # set to image for the oci capi operator
+export IMG= # set to your choice of image name for the oci capi operator to build and push as
 make build-image
 
 # Optionally, push the built image to a remote image store
@@ -115,7 +121,7 @@ make push-image
 
 Deploy the OCI CAPI operator
 ```sh
-export IMG= # set to image for the oci capi operator
+export IMG= # set to the image name to use for the oci capi operator deployment
 make deploy
 ```
 

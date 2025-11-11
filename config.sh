@@ -4,6 +4,14 @@
 compartment_name=
 image_name=
 
+# Optional Config Variables
+# IMPORTANT: Set `oci_cluster_name` if your OCP cluster name is not the same as the OCI cluster name
+oci_cluster_name=
+
+# If not provided, auto-detect the cluster name and OCI cluster name from within the OCP cluster
+cluster_name=${cluster_name:-$(oc get infrastructure cluster -ojsonpath='{.status.infrastructureName}')}
+oci_cluster_name=${oci_cluster_name:-$(echo "$cluster_name" | rev | cut -d - -f 2- | rev)}
+
 
 # Auto-detected 
 export OCI_TENANCY_ID="\"$(grep -E "^tenancy=" ~/.oci/config | cut -d = -f 2)\""
@@ -18,8 +26,7 @@ export passphrase="\"\"" # passphrase for api key, leave empty if did not set du
 compartment_id="$(oci iam compartment list --all --compartment-id-in-subtree true --access-level ACCESSIBLE --raw-output --query "data[?name=='$compartment_name'].id | [0]")"
 nsg_name=cluster-compute-nsg
 subnet_name=private
-cluster_name=$(oc get infrastructure cluster -ojsonpath='{.status.infrastructureName}')
-oci_cluster_name=$(echo "$cluster_name" | rev | cut -d - -f 2- | rev)
+
 vcn_id="$(oci network vcn list --compartment-id "$compartment_id" --display-name "$oci_cluster_name" | jq -r '.data[0].id')"
 
 # IMAGE_ID is the OCID of the RHCOS image to use for new worker nodes added to the cluster
